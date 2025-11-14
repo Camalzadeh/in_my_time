@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataSource name="@localhost">
+  <database-model serializer="dbm" dbms="MONGO" family-id="MONGO" format-version="4.53">
+    <root id="1">
+      <ServerVersion>8.2.1</ServerVersion>
+    </root>
+    <schema id="2" parent="1" name="admin">
+      <LastIntrospectionLocalTimestamp>2025-11-14.18:14:04</LastIntrospectionLocalTimestamp>
+    </schema>
+    <schema id="3" parent="1" name="config">
+      <LastIntrospectionLocalTimestamp>2025-11-14.18:14:04</LastIntrospectionLocalTimestamp>
+    </schema>
+    <schema id="4" parent="1" name="inMyTimeDB">
+      <LastIntrospectionLocalTimestamp>2025-11-14.19:12:14</LastIntrospectionLocalTimestamp>
+    </schema>
+    <schema id="5" parent="1" name="local">
+      <LastIntrospectionLocalTimestamp>2025-11-14.18:14:04</LastIntrospectionLocalTimestamp>
+    </schema>
+    <table id="6" parent="4" name="polls"/>
+    <column id="7" parent="6" name="_id">
+      <Position>1</Position>
+      <StoredType>ObjectId|12s</StoredType>
+    </column>
+    <column id="8" parent="6" name="__v">
+      <Position>2</Position>
+      <StoredType>Int32|4s</StoredType>
+    </column>
+    <column id="9" parent="6" name="availableDates">
+      <Position>3</Position>
+      <StoredType>Array|2003s</StoredType>
+    </column>
+    <column id="10" parent="6" name="createdAt">
+      <Position>4</Position>
+      <StoredType>ISODate|91s</StoredType>
+    </column>
+    <column id="11" parent="6" name="description">
+      <Position>5</Position>
+      <StoredType>String|12s</StoredType>
+    </column>
+    <column id="12" parent="6" name="ownerId">
+      <Position>6</Position>
+      <StoredType>String|12s</StoredType>
+    </column>
+    <column id="13" parent="6" name="status">
+      <Position>7</Position>
+      <StoredType>String|12s</StoredType>
+    </column>
+    <column id="14" parent="6" name="title">
+      <Position>8</Position>
+      <StoredType>String|12s</StoredType>
+    </column>
+    <column id="15" parent="6" name="updatedAt">
+      <Position>9</Position>
+      <StoredType>ISODate|91s</StoredType>
+    </column>
+    <column id="16" parent="6" name="votes">
+      <Position>10</Position>
+      <StoredType>list|4999545s</StoredType>
+    </column>
+  </database-model>
+</dataSource>
