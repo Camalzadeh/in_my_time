@@ -4,15 +4,16 @@ import Poll from '@/models/Poll';
 import mongoose from 'mongoose';
 
 interface RouteContext {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
+
 export async function GET(
     request: NextRequest,
     context: RouteContext
-){
-    const { id } =  await context.params;
+) {
+    const { id } = await context.params;
     const pollId = id;
     await connectDB();
 
