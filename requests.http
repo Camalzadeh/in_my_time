@@ -16,4 +16,4 @@ Content-Type: application/json
 
 ### Get Poll Details (GET /api/poll/[id])
 
-GET http://localhost:3000/api/poll/69177f04ee56370d9ddf4198
+GET http://localhost:3000/api/poll/69185d22197d05e984a0a009
