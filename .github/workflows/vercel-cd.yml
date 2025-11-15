@@ -1,38 +1,34 @@
-name: Vercel CI/CD Pipeline
+name: Vercel Continuous Deployment
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build_and_deploy:
+  deploy_vercel:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 2. Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: 3. Install Dependencies
         run: npm install --legacy-peer-deps
 
-
-      - name: Run Next.js Build
+      - name: 4. Run Next.js Build (for Vercel)
         run: npm run build
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
-      - name: Deploy to Vercel
+      - name: 5. Deploy to Vercel Production
         uses: amondnet/vercel-action@v25
-        if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
