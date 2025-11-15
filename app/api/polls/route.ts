@@ -1,5 +1,3 @@
-// app/api/polls/route.ts (Güncellenmiş POST fonksiyonu)
-
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Poll from '@/models/Poll';
@@ -7,16 +5,16 @@ import Poll from '@/models/Poll';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        console.log("2. Gelen Veri (Body):", body);
+        console.log("2. Incoming Data (Body):", body);
 
         await connectDB();
-        console.log("3. MongoDB bağlantısı başarılı.");
+        console.log("3. MongoDB connection successful.");
 
-        const { title, description, availableDates, ownerId } = body; // ownerId'yi de almalısınız!
+        const { title, description, availableDates, ownerId } = body;
 
         if (!title || !availableDates || availableDates.length === 0 || !ownerId) {
             return NextResponse.json(
-                { message: 'Başlık, tarihler ve sahip kimliği (ownerId) zorunludur.' },
+                { message: 'Title, dates, and owner ID (ownerId) are required.' },
                 { status: 400 }
             );
         }
@@ -28,11 +26,11 @@ export async function POST(request: Request) {
             ownerId
         });
 
-        console.log("4. Veri başarıyla kaydedildi.");
+        console.log("4. Data saved successfully.");
 
         return NextResponse.json(
             {
-                message: 'Anket başarıyla oluşturuldu.',
+                message: 'Poll created successfully.',
                 pollId: newPoll._id,
                 shareUrl: `/poll/${newPoll._id}`
             },
@@ -40,9 +38,9 @@ export async function POST(request: Request) {
         );
 
     } catch (error) {
-        console.error("KRİTİK SUNUCU HATASI:", error);
+        console.error("CRITICAL SERVER ERROR:", error);
         return NextResponse.json(
-            { message: 'Sunucu hatası: Anket oluşturulamadı.', detail: (error as Error).message },
+            { message: 'Server error: Could not create poll.', detail: (error as Error).message },
             { status: 500 }
         );
     }

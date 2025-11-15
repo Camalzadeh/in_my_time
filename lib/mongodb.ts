@@ -1,5 +1,3 @@
-// frontend/lib/mongodb.ts
-
 import mongoose, { Mongoose } from 'mongoose';
 
 const MONGO_URI = process.env.MONGO_URI;
@@ -19,13 +17,13 @@ if (!cached) {
 
 export async function connectDB() {
     if (cached.conn) {
-        console.log('MongoDB: Önbellekten dönülüyor.');
+        console.log('MongoDB: Returning from cache.');
         return cached.conn;
     }
 
     if (!cached.promise) {
         if (!MONGO_URI) {
-            throw new Error('MONGO_URI ortam değişkeni tanımlı değil!');
+            throw new Error('MONGO_URI environment variable is not defined!');
         }
 
         const opts = {
@@ -35,7 +33,7 @@ export async function connectDB() {
         cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {
             return mongoose;
         });
-        console.log('MongoDB: Yeni bağlantı oluşturuluyor...');
+        console.log('MongoDB: Creating new connection...');
     }
 
     try {

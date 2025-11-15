@@ -1,27 +1,25 @@
 "use client"
 
 import { useState } from 'react';
-// DİQQƏT: Animasiyalar və 'Loading' ikonu üçün əlavə importlar
 import {
     User,
     Calendar,
     Check,
     ArrowRight,
-    Loader2, // Yüklənmə ikonu
-    Share2, // Paylaşma ikonu
-    Copy // Kopyalama ikonu
+    Loader2,
+    Share2,
+    Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Datalarınızın tipi (API-dən gələnə uyğun olmalıdır)
 interface Option {
-    _id: string; // MongoDB sub-document ID
+    _id: string;
     time: string;
     votes: string[];
 }
 
 interface PollData {
-    _id?: string; // MongoDB document ID
+    _id?: string;
     title: string;
     description: string;
     options: Option[];
@@ -34,9 +32,6 @@ interface PollContentProps {
     pollId: string;
 }
 
-// --- Animasiya Variantları ---
-
-// Elementlərin aşağıdan yuxarı səlis şəkildə daxil olması üçün
 const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -48,39 +43,40 @@ const fadeInUp = {
     }
 };
 
-// Kartlar kimi elementlərin bir-birinin ardınca daxil olması üçün
 const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.1, // Hər element arasında 0.1 saniyə
+            staggerChildren: 0.1,
         }
     }
 };
-
-// --- Komponent ---
 
 export function PollContent({ pollData, pollId }: PollContentProps) {
 
     const safePollData: PollData = {
         ...pollData,
         options: pollData?.options || [],
-        title: pollData?.title || "Səsvermə Başlığı Yoxdur",
+        title: pollData?.title || "No Poll Title",
         description: pollData?.description || "",
-        totalVoters: pollData?.totalVoters || (pollData?.options?.length || 0),
-        currentUser: pollData?.currentUser || 'Anonim',
+        // Recalculate totalVoters based on unique voters in all options
+        totalVoters: (() => {
+            const uniqueVoters = new Set<string>();
+            pollData.options?.forEach(option => option.votes?.forEach(voter => uniqueVoters.add(voter)));
+            return uniqueVoters.size > 0 ? uniqueVoters.size : 1;
+        })(),
+        currentUser: pollData?.currentUser || 'Anonymous',
     };
 
     const [poll, setPoll] = useState(safePollData);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [copyStatus, setCopyStatus] = useState<'copy' | 'copied'>('copy'); // Kopyalama statusu
+    const [copyStatus, setCopyStatus] = useState<'copy' | 'copied'>('copy');
 
-    // İstifadəçinin səs verdiyi variantların ID-lərini saxlayır
     const [userVotes, setUserVotes] = useState<string[]>(
-        poll.options
-            .filter(option => Array.isArray(option.votes) && option.votes.includes(poll.currentUser))
+        safePollData.options
+            .filter(option => Array.isArray(option.votes) && option.votes.includes(safePollData.currentUser!))
             .map(option => option._id)
     );
 
@@ -91,47 +87,35 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
         setIsSubmitting(true);
         const currentlyVoted = userVotes.includes(optionId);
         const originalUserVotes = userVotes;
+        const originalPollData = poll;
 
-        // Optimistik Yenilənmə (Local state-i dərhal yeniləyir)
+        // Optimistic UI Update
         setUserVotes(prevVotes =>
             currentlyVoted
                 ? prevVotes.filter(id => id !== optionId)
                 : [...prevVotes, optionId]
         );
 
-        // Həmçinin, Poll state-i də optimistik olaraq yenilənməlidir ki, UI dərhal dəyişsin
         setPoll(prevPoll => {
             const newOptions = prevPoll.options.map(option => {
                 if (option._id === optionId) {
                     const newVotes = currentlyVoted
                         ? option.votes.filter(voter => voter !== prevPoll.currentUser)
-                        : [...option.votes, prevPoll.currentUser];
-
-                    // totalVoters-i düzgün hesablamaq üçün bütün voteləri yenidən sayırıq
-                    const allVotes = new Set<string>();
-                    prevPoll.options.forEach(opt => {
-                        if (opt._id === optionId) {
-                            newVotes.forEach(v => allVotes.add(v));
-                        } else {
-                            opt.votes.forEach(v => allVotes.add(v));
-                        }
-                    });
+                        : [...option.votes, prevPoll.currentUser!];
 
                     return { ...option, votes: newVotes };
                 }
                 return option;
             });
 
-            // Yeni totalVoters-i yenidən hesabla
             const uniqueVoters = new Set<string>();
             newOptions.forEach(opt => opt.votes.forEach(voter => uniqueVoters.add(voter)));
             const newTotalVoters = uniqueVoters.size;
 
-
             return {
                 ...prevPoll,
                 options: newOptions,
-                totalVoters: newTotalVoters > 0 ? newTotalVoters : 1 // Sıfır olarsa, minimum 1 qoyuruq ki, bölmə xətası olmasın
+                totalVoters: newTotalVoters > 0 ? newTotalVoters : 1
             };
         });
 
@@ -148,42 +132,36 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
             });
 
             if (!res.ok) {
-                // Əməliyyat uğursuz olarsa, state-i əvvəlki vəziyyətinə qaytarın (Rollback)
                 setUserVotes(originalUserVotes);
-                setPoll(safePollData); // Səhvin miqyasına görə bunu sadəlik üçün tam dataya qaytarırıq
+                setPoll(originalPollData);
                 const errorData = await res.json();
-                setError(errorData.message || 'Səsvermə əməliyyatı uğursuz oldu.');
+                setError(errorData.message || 'Voting operation failed.');
             } else {
-                // API-dan gələn son məlumatlarla state-i yeniləmək olar (isteğe bağlı)
-                // const updatedPoll = await res.json();
-                // setPoll(updatedPoll);
-                console.log(`[CLIENT]: Səsvermə ID ${pollId} uğurla yeniləndi.`);
+                console.log(`[CLIENT]: Vote ID ${pollId} successfully updated.`);
             }
 
         } catch (err) {
-            // Şəbəkə xətası olarsa, state-i əvvəlki vəziyyətinə qaytarın (Rollback)
             setUserVotes(originalUserVotes);
-            setPoll(safePollData);
-            setError('Şəbəkə xətası: Sunucuya qoşulmaq mümkün olmadı.');
+            setPoll(originalPollData);
+            setError('Network Error: Could not connect to the server.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleCopyLink = () => {
-        const pollUrl = window.location.href; // Cari URL-i kopyalayır
+        const pollUrl = window.location.href;
         navigator.clipboard.writeText(pollUrl).then(() => {
             setCopyStatus('copied');
-            setTimeout(() => setCopyStatus('copy'), 2000); // 2 saniyə sonra statusu sıfırla
+            setTimeout(() => setCopyStatus('copy'), 2000);
         }).catch(() => {
-            alert("Link kopyalanmadı. Zəhmət olmasa URL-i əl ilə kopyalayın.");
+            alert("Failed to copy link. Please copy the URL manually.");
         });
     };
 
     return (
         <main className="min-h-screen bg-background text-foreground relative overflow-hidden py-12 md:py-20">
 
-            {/* --- Aurora Fon Effektləri --- */}
             <div className="absolute inset-0 -z-20 overflow-hidden">
                 <div className="absolute -top-1/4 left-1/4 w-full h-full max-w-2xl">
                     <div className="w-full h-full rounded-full bg-primary/10 blur-[120px] opacity-40" />
@@ -194,7 +172,6 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
             </div>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Başlıq Bloku (Animasiya ilə) */}
                 <motion.div
                     className="text-center space-y-4 mb-10 md:mb-16"
                     variants={staggerContainer}
@@ -205,7 +182,7 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                         <div
                             className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-primary/10 px-4 py-2 rounded-full border border-primary/20 shadow-sm">
                             <Calendar className="w-4 h-4"/>
-                            Səsvermə ID: <span className="font-semibold">{pollId}</span>
+                            Poll ID: <span className="font-semibold">{pollId}</span>
                         </div>
                     </motion.div>
 
@@ -226,12 +203,11 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                     <motion.div variants={fadeInUp} className="flex items-center justify-center gap-4 pt-2">
                         <span className="flex items-center gap-2 text-sm text-foreground/70">
                             <User className="w-4 h-4 text-accent"/>
-                            İştirakçılar: {poll.totalVoters} nəfər
+                            Participants: {poll.totalVoters} people
                         </span>
                     </motion.div>
                 </motion.div>
 
-                {/* Xəta Mesajı (Animasiya ilə) */}
                 <AnimatePresence>
                     {error && (
                         <motion.div
@@ -240,12 +216,11 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                             exit={{ opacity: 0, y: -10 }}
                             className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl mb-8 text-center font-medium"
                         >
-                            Xəta: {error}
+                            Error: {error}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Səsvermə Kartları (Stagger Animasiyası ilə) */}
                 <motion.div
                     className="space-y-6"
                     variants={staggerContainer}
@@ -255,14 +230,13 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                     {poll.options.map((option) => {
                         const isVoted = userVotes.includes(option._id);
                         const voteCount = option.votes.length;
-                        // totalVoters 0 olarsa, bölmə xətası olmaması üçün yoxlama
                         const votePercentage = (poll.totalVoters && poll.totalVoters > 0) ? (voteCount / poll.totalVoters) * 100 : 0;
 
                         return (
                             <motion.div
                                 key={option._id}
-                                variants={fadeInUp} // Hər kart aşağıdan yuxarı səlis daxil olur
-                                whileHover={{ scale: 1.02, y: -4 }} // Hover zamanı yüngül effekt
+                                variants={fadeInUp}
+                                whileHover={{ scale: 1.02, y: -4 }}
                                 transition={{ duration: 0.2 }}
                                 className={`
                                     p-6 rounded-2xl border transition-all duration-300 relative
@@ -289,7 +263,6 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                                 : "bg-muted text-foreground/80 border-border hover:bg-muted/90"
                                         } ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
-                                        {/* Düymənin içindəki mətnin animasiyası */}
                                         <AnimatePresence mode="wait" initial={false}>
                                             <motion.span
                                                 key={isSubmitting ? "loading" : isVoted ? "voted" : "vote"}
@@ -305,16 +278,15 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                                         ? <Check className="w-4 h-4"/>
                                                         : <ArrowRight className="w-4 h-4"/>
                                                 }
-                                                {isSubmitting ? "Yüklənir" : isVoted ? "Səs Verilib" : "Səs Ver"}
+                                                {isSubmitting ? "Loading" : isVoted ? "Voted" : "Vote"}
                                             </motion.span>
                                         </AnimatePresence>
                                     </motion.button>
                                 </div>
 
-                                {/* Progress Bar (Animasiya ilə) */}
                                 <div className="mt-5">
                                     <div className="flex justify-between items-center text-sm text-foreground/70 mb-2">
-                                        <span>{voteCount} / {poll.totalVoters} səs</span>
+                                        <span>{voteCount} / {poll.totalVoters} votes</span>
                                         <span className="font-semibold"
                                               style={{color: votePercentage >= 70 ? 'var(--color-primary)' : 'var(--color-accent)'}}>
                                             {Math.round(votePercentage)}%
@@ -327,7 +299,7 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                             animate={{ width: `${votePercentage}%` }}
                                             transition={{
                                                 duration: 1,
-                                                delay: 0.2, // Yüngül gecikmə
+                                                delay: 0.2,
                                                 ease: [0.25, 0.1, 0.25, 1.0]
                                             }}
                                             style={{
@@ -337,7 +309,6 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                     </div>
                                 </div>
 
-                                {/* Səs Verənlərin Siyahısı (Animasiya ilə) */}
                                 {option.votes.length > 0 && (
                                     <motion.div
                                         className="mt-5 pt-5 border-t border-border/70"
@@ -345,7 +316,7 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: 0.5 }}
                                     >
-                                        <p className="text-sm font-medium text-foreground/80 mb-3">Səs verənlər:</p>
+                                        <p className="text-sm font-medium text-foreground/80 mb-3">Voters:</p>
                                         <div className="flex flex-wrap gap-2">
                                             {option.votes.map((voter) => (
                                                 <span
@@ -356,7 +327,7 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                                             : 'bg-muted/50 text-foreground/70 border-muted'
                                                     }`}
                                                 >
-                                                    {voter} {voter === poll.currentUser && '(Sən)'}
+                                                    {voter} {voter === poll.currentUser && '(You)'}
                                                 </span>
                                             ))}
                                         </div>
@@ -367,16 +338,15 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                     })}
                 </motion.div>
 
-                {/* Nəticə və Paylaşma Bloku */}
                 <motion.div
                     className="mt-20 pt-10 border-t border-border/70 text-center space-y-6"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: poll.options.length * 0.1 + 0.5 }} // Kartlar bitdikdən sonra
+                    transition={{ delay: poll.options.length * 0.1 + 0.5 }}
                 >
-                    <h2 className="text-3xl font-bold text-foreground">Paylaşmağa Hazırsan?</h2>
+                    <h2 className="text-3xl font-bold text-foreground">Ready to Share?</h2>
                     <p className="text-lg text-foreground/60 max-w-xl mx-auto">
-                        Link kopyalayın və komanda yoldaşlarınıza göndərərək səsverməni sürətləndirin.
+                        Copy the link and send it to your teammates to speed up the voting process.
                     </p>
                     <motion.button
                         onClick={handleCopyLink}
@@ -403,7 +373,7 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
                                     ? <Check className="w-5 h-5"/>
                                     : <Copy className="w-5 h-5"/>
                                 }
-                                {copyStatus === 'copied' ? "Kopyalandı!" : "Link Kopyala"}
+                                {copyStatus === 'copied' ? "Copied!" : "Copy Link"}
                             </motion.span>
                         </AnimatePresence>
                     </motion.button>

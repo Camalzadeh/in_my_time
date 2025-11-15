@@ -1,18 +1,19 @@
 ### Create Poll (POST /api/polls)
+
 POST http://localhost:3000/api/polls
 Content-Type: application/json
 
 {
-  "title": "Haftalık Proje Toplantısı",
+  "title": "Weekly Project Meeting",
   "ownerId": "test_owner_001",
 
-  "description": "Lütfen uygun olduğunuz zamanları belirtin.",
+  "description": "Please indicate your availability.",
   "availableDates": [
     "2026-01-15T10:00:00.000Z",
     "2026-01-15T14:00:00.000Z"
   ]
 }
-### Look Pool (POST /api/polls)
+
+### Get Poll Details (GET /api/poll/[id])
 
 GET http://localhost:3000/api/poll/69177f04ee56370d9ddf4198
-

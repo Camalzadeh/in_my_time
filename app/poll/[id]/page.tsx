@@ -1,5 +1,5 @@
-import { PollContent } from '../../components/poll/PollContent'; // <-- { } Fiqurlu mötərizələr vacibdir!
-import { notFound } from 'next/navigation'; // 404 səhifəsini göstərmək üçün
+import { PollContent } from '../../components/poll/PollContent';
+import { notFound } from 'next/navigation';
 
 async function getPollData(pollId: string) {
     const res = await fetch(`http://localhost:3000/api/poll/${pollId}`, {
@@ -11,7 +11,7 @@ async function getPollData(pollId: string) {
     }
 
     if (!res.ok) {
-        throw new Error('Anket məlumatları gətirilərkən xəta baş verdi.');
+        throw new Error('Failed to fetch poll data.');
     }
 
     return res.json();
@@ -32,8 +32,8 @@ export default async function PollPage({ params }: PollPageProps) {
     try {
         pollData = await getPollData(pollId);
     } catch (error) {
-        console.error("API-dən məlumat gətirmə xətası:", error);
-        return <div className="text-center p-20 text-red-500">Məlumat gətirilərkən sunucu xətası baş verdi.</div>;
+        console.error("Error fetching data from API:", error);
+        return <div className="text-center p-20 text-red-500">Server error occurred while fetching data.</div>;
     }
 
     return (
