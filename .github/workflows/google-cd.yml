@@ -1,4 +1,4 @@
-name: CD - Deploy to Cloud Run (Docker-First)
+name: Google Cloud Continuous Deployment
 
 on:
   push:
@@ -6,11 +6,12 @@ on:
       - main
 
 jobs:
-  if: "!contains(github.event.head_commit.message, '[no google-cd]')"
 
   ci_check:
     name: CI Check
     uses: ./.github/workflows/ci.yml
+    if: |
+      !contains(github.event.head_commit.message, '[no google-cd]')
 
   deploy_to_cloud_run:
     runs-on: ubuntu-latest
