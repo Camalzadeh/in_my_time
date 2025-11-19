@@ -18,7 +18,7 @@ jobs:
       PROJECT_ID: inmytime
       SERVICE_NAME: in-my-time2
       REGION: europe-west1
-      IMAGE_REPO_URL: https://in-my-time2-460900999198.europe-west1.run.app
+      IMAGE_REPO_URL: europe-west1-docker.pkg.dev/inmytime/cloud-run-source-deploy/in_my_time
       IMAGE_TAG: ${{ github.sha }}
 
     steps:
