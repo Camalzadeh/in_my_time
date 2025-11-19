@@ -6,6 +6,8 @@ on:
       - main
 
 jobs:
+  if: "!contains(github.event.head_commit.message, '[no vercel-cd]')"
+
   ci_check:
     name: CI Check
     uses: ./.github/workflows/ci.yml
