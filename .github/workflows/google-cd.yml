@@ -55,7 +55,7 @@ jobs:
           tags: ${{ env.IMAGE_REPO_URL }}:${{ env.IMAGE_TAG }}
 
       - name: Deploy new image to Cloud Run
-        id: deploy-cloud-run
+        id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}

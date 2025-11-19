@@ -41,7 +41,7 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
       - name: 5. Deploy to Vercel Production
-        id: deploy-vercel
+        id: deploy
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
