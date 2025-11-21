@@ -19,8 +19,8 @@ jobs:
     needs: ci_check
 
     environment:
-      name: Production # GitHub Environments-dəki mühitin adı (Məsələn: Production, Staging)
-      url: ${{ steps.deploy.outputs.preview-url }} # Deployment bitdikdən sonra alınacaq URL
+      name: Production
+      url: ${{ steps.deploy.outputs.preview-url }}
 
     steps:
       - name: 1. Checkout Code

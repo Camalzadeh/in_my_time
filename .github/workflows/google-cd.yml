@@ -20,8 +20,8 @@ jobs:
     needs: ci_check
 
     environment:
-      name: Production # GitHub Environments-dəki mühitin adı (Məsələn: Production, Staging)
-      url: ${{ steps.deploy.outputs.url }} # Deployment bitdikdən sonra alınacaq URL
+      name: Production
+      url: ${{ steps.deploy.outputs.url }}
 
     env:
       PROJECT_ID: inmytime
