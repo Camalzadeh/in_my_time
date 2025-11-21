@@ -28,10 +28,14 @@ jobs:
       - name: 3. Install Dependencies
         run: npm ci --legacy-peer-deps
 
-      # - name: 4. Run Lint &  Run Tests (Zəhmət olmasa aktivləşdirin)
-      #  run : |
-      #    npm run lint
-      #    npm run test -- --ci
+      - name: 4. Run Lint & Run Tests
+        run : |
+          echo "Starting Linting..."
+          npm run lint
+          echo "Starting Unit & Integration Tests..."
+          npm run test -- --ci
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
       - name: 5. Run Next.js Build Verification
         run: npm run build

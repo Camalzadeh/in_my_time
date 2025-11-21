@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {connectDB} from '@/lib/mongodb';
-import Poll from '@/models/Poll';
+import {Poll} from '@/models/Poll';
 import mongoose from 'mongoose';
 
 interface RouteContext {

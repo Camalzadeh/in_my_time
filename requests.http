@@ -1,19 +1,59 @@
-### Create Poll (POST /api/polls)
+@baseUrl = http://localhost:3000/api
+@contentType = application/json
 
-POST http://localhost:3000/api/polls
-Content-Type: application/json
+POST {{baseUrl}}/polls
+Content-Type: {{contentType}}
 
 {
-  "title": "Weekly Project Meeting",
-  "ownerId": "test_owner_001",
-
-  "description": "Please indicate your availability.",
+  "title": "Weekly Team Meeting",
+  "description": "Please indicate your available times.",
+  "ownerId": "user_uuid_12345",
+  "config": {
+    "targetDates": [
+      "2025-11-25T00:00:00.000Z",
+      "2025-11-26T00:00:00.000Z"
+    ],
+    "dailyStartTime": "09:00",
+    "dailyEndTime": "17:00",
+    "slotDuration": 30
+  },
   "availableDates": [
-    "2026-01-15T10:00:00.000Z",
-    "2026-01-15T14:00:00.000Z"
+    "2025-11-25T09:00:00.000Z",
+    "2025-11-25T09:30:00.000Z",
+    "2025-11-26T10:00:00.000Z"
   ]
 }
 
-### Get Poll Details (GET /api/poll/[id])
+###
 
-GET http://localhost:3000/api/poll/69185d22197d05e984a0a009
+@pollId = 69209b6a2b1728c76bf88487
+GET {{baseUrl}}/poll/{{pollId}}
+
+###
+
+PATCH {{baseUrl}}/poll/{{pollId}}
+Content-Type: {{contentType}}
+
+{
+  "action": "vote",
+  "voteData": {
+    "tempVoterId": "browser_fingerprint_999",
+    "voterName": "Ahmet",
+    "voterColor": "#3498db",
+    "selectedSlots": [
+      "2025-11-25T09:00:00.000Z",
+      "2025-11-25T09:30:00.000Z"
+    ]
+  }
+}
+
+###
+
+PATCH {{baseUrl}}/poll/{{pollId}}
+Content-Type: {{contentType}}
+
+{
+  "action": "finalize",
+  "status": "finalized",
+  "finalTime": "2025-11-25T09:30:00.000Z"
+}

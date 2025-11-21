@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import Poll from '@/models/Poll';
+import { Poll } from '@/models/Poll';
+import { generateAvailableSlots } from '@/lib/slot-generator';
 
 export async function POST(request: Request) {
     try {
@@ -10,20 +11,26 @@ export async function POST(request: Request) {
         await connectDB();
         console.log("3. MongoDB connection successful.");
 
-        const { title, description, availableDates, ownerId } = body;
+        // Client'tan artık 'availableDates' beklemiyoruz, 'config' bekliyoruz.
+        const { title, description, ownerId, config } = body;
 
-        if (!title || !availableDates || availableDates.length === 0 || !ownerId) {
+        // Yeni validasyon: Config zorunlu
+        if (!title || !ownerId || !config) {
             return NextResponse.json(
-                { message: 'Title, dates, and owner ID (ownerId) are required.' },
+                { message: 'Title, owner ID, and config are required.' },
                 { status: 400 }
             );
         }
 
+        // Backend tarafında slotları hesapla
+        const availableDates = generateAvailableSlots(config);
+
         const newPoll = await Poll.create({
             title,
             description: description || '',
-            availableDates,
-            ownerId
+            ownerId,
+            config,           // UI'ı tekrar çizmek için ayarları sakla
+            availableDates    // Oylama mantığı için hesaplanan tarihleri sakla
         });
 
         console.log("4. Data saved successfully.");
