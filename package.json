@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "jest",
+    "test:unit": "jest --config jest.unit.config.js",
     "test:watch": "jest --watch"
   },
   "dependencies": {
