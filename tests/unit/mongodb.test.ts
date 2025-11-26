@@ -26,7 +26,7 @@ describe('connectDB', () => {
 
     it('should return cached connection if it exists', async () => {
         const mockConn = { connection: 'cached' };
-        global.mongoose = { conn: mockConn as never, promise: null };
+        global.mongoose = { conn: mockConn as unknown as null, promise: null };
 
         process.env.MONGO_URI = 'mongodb://localhost:27017/test';
 

@@ -123,7 +123,8 @@ describe('generateAvailableSlots', () => {
 
         const slots = generateAvailableSlots(config);
 
-        // 09:00 and 09:30 are both before 09:45, so 2 slots should be generated
+        // Slots are generated if their start time is before the end time
+        // 09:00 starts before 09:45, 09:30 starts before 09:45 -> 2 slots
         expect(slots).toHaveLength(2);
         expect(slots[0].getHours()).toBe(9);
         expect(slots[0].getMinutes()).toBe(0);
