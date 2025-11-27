@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     // SAFELY normalize targetDates → always valid Date()
     const normalizedConfig = {
       ...config,
-      targetDates: (config.targetDates || []).map((d: any) => {
+      targetDates: (config.targetDates || []).map((d: string | Date) => {
         const date = new Date(d);
         if (isNaN(date.getTime())) {
           throw new Error("Invalid date in targetDates: " + d);
@@ -53,14 +53,18 @@ export async function POST(request: Request) {
       { status: 201 }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("CRITICAL SERVER ERROR:", error);
+  
+    const message =
+      error instanceof Error ? error.message : "Unknown server error";
+  
     return NextResponse.json(
       {
-        message: 'Server error: Could not create poll.',
-        detail: error?.message,
+        message: "Server error: Could not create poll.",
+        detail: message,
       },
       { status: 500 }
     );
-  }
+  }  
 }

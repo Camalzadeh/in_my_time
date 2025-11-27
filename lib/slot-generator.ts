@@ -17,7 +17,7 @@ export function generateAvailableSlots(config: IPoll['config']): Date[] {
         }
 
         let current = setMinutes(setHours(base, startHour), startMinute);
-        let end = setMinutes(setHours(base, endHour), endMinute);
+        const end = setMinutes(setHours(base, endHour), endMinute);
 
         while (current < end) {
             allSlots.push(new Date(current));  // clone
