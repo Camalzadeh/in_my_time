@@ -11,7 +11,6 @@ export const metadata: Metadata = {
     title: "InMyTime - Find Common Availability",
     description:
         "Easily discover the best common time for meetings and events. No signup needed—instant scheduling polls.",
-    // generator: "v0.app",
     icons: {
         icon: [
             {

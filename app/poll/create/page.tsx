@@ -7,7 +7,7 @@ export default function CreatePollPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const [singleDate, setSingleDate] = useState(""); // YYYY-MM-DD
+  const [singleDate, setSingleDate] = useState("");
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
   const [targetDates, setTargetDates] = useState<string[]>([]);
