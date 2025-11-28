@@ -2,15 +2,19 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { Calendar, PlusCircle, Send, Clock, SlidersHorizontal } from "lucide-react";
+import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
+import { generateTimeSlots, formatTime } from "@/lib/timeSlots";
 
 export default function CreatePollPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const [singleDate, setSingleDate] = useState(""); // YYYY-MM-DD
+
+  const [singleDate, setSingleDate] = useState("");
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
   const [targetDates, setTargetDates] = useState<string[]>([]);
+
 
   const [dailyStartTime, setDailyStartTime] = useState("09:00");
   const [dailyEndTime, setDailyEndTime] = useState("17:00");
@@ -18,7 +22,7 @@ export default function CreatePollPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleAddSingleDate = () => {
     setError(null);
@@ -31,6 +35,7 @@ export default function CreatePollPage() {
     setSingleDate("");
   };
 
+  // (we will later move this to lib, but for now it stays here)
   const generateDateRange = (start: string, end: string): string[] => {
     const result: string[] = [];
     const startDate = new Date(start);
@@ -74,11 +79,33 @@ export default function CreatePollPage() {
 
   const previewDates = useMemo(() => targetDates.slice(0, 4), [targetDates]);
 
+  const sampleSlots = useMemo(() => {
+    if (
+      targetDates.length === 0 ||
+      !dailyStartTime ||
+      !dailyEndTime ||
+      !slotDuration ||
+      slotDuration <= 0
+    ) {
+      return [];
+    }
+
+    const firstDate = targetDates[0];
+    const start = new Date(`${firstDate}T${dailyStartTime}`);
+    const end = new Date(`${firstDate}T${dailyEndTime}`);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+      return [];
+    }
+
+    return generateTimeSlots({ start, end }, slotDuration).slice(0, 6);
+  }, [targetDates, dailyStartTime, dailyEndTime, slotDuration]);
+
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-
+    setSuccessMessage(null);
     if (!title.trim()) {
       setError("Title is required.");
       return;
@@ -100,7 +127,7 @@ export default function CreatePollPage() {
     }
 
     const config = {
-      targetDates,
+      targetDates, 
       dailyStartTime,
       dailyEndTime,
       slotDuration,
@@ -109,7 +136,7 @@ export default function CreatePollPage() {
     const payload = {
       title,
       description,
-      ownerId: "demo-owner-id", // TODO: replace with real user id from auth
+      ownerId: "demo-owner-id", 
       config,
     };
 
@@ -137,6 +164,8 @@ export default function CreatePollPage() {
         setDailyStartTime("09:00");
         setDailyEndTime("17:00");
         setSlotDuration(60);
+
+        setSuccessMessage("✅ Poll created successfully!");
       }
     } catch (err) {
       console.error(err);
@@ -154,7 +183,11 @@ export default function CreatePollPage() {
             Create Poll
           </p>
           <h1 className="mt-2 text-3xl md:text-4xl font-bold text-slate-900">
-            Find the <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">perfect time</span> for your team
+            Find the{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+              perfect time
+            </span>{" "}
+            for your team
           </h1>
           <p className="mt-2 text-slate-500 max-w-2xl">
             Choose the days and daily time window you’re available. We’ll automatically
@@ -295,7 +328,7 @@ export default function CreatePollPage() {
                     Daily time window
                   </p>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
                       Start time
@@ -318,19 +351,11 @@ export default function CreatePollPage() {
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
                     />
                   </div>
+                  {/* PREDEFINED SLOT OPTIONS */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Slot duration (min)
-                    </label>
-                    <input
-                      type="number"
-                      min={5}
-                      step={5}
+                    <SlotPresetSelector
                       value={slotDuration}
-                      onChange={(e) =>
-                        setSlotDuration(Number(e.target.value) || 0)
-                      }
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                      onChange={setSlotDuration}
                     />
                   </div>
                 </div>
@@ -344,6 +369,13 @@ export default function CreatePollPage() {
               {error && (
                 <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
                   {error}
+                </p>
+              )}
+              
+              {/* success */}
+              {successMessage && (
+                <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                  {successMessage}
                 </p>
               )}
 
@@ -386,7 +418,7 @@ export default function CreatePollPage() {
                     >
                       <div className="flex-1">
                         <div
-                          className={`h-2 rounded-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400`}
+                          className="h-2 rounded-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400"
                           style={{
                             width: `${70 - idx * 10}%`,
                           }}
@@ -408,6 +440,25 @@ export default function CreatePollPage() {
                   ))
                 )}
               </div>
+
+              {/* show example slots for first day */}
+              {sampleSlots.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    First day example slots ({sampleSlots.length}):
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sampleSlots.map((slot) => (
+                      <span
+                        key={slot.toISOString()}
+                        className="rounded-full bg-slate-800 px-2 py-1 text-[11px]"
+                      >
+                        {formatTime(slot)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 border-t border-slate-700 pt-4 text-xs text-slate-400 flex flex-wrap gap-3">
