@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { Calendar, PlusCircle, Send, Clock, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
 import { generateTimeSlots, formatTime } from "@/lib/time-slots";
+import {API_ROUTES} from "@/lib/routes";
 
 export default function CreatePollPage() {
   const [title, setTitle] = useState("");
@@ -143,7 +144,7 @@ export default function CreatePollPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/polls", {
+      const res = await fetch(API_ROUTES.POLLS, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

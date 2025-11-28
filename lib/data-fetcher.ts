@@ -1,5 +1,6 @@
 import {headers} from "next/headers";
 import {notFound} from "next/navigation";
+import {API_ROUTES} from "@/lib/routes";
 
 export async function getBaseUrl() {
     const headersList = await headers();
@@ -18,7 +19,7 @@ export async function getBaseUrl() {
 export async function getPollData(pollId: string) {
     const BASE_URL = await getBaseUrl();
 
-    const res = await fetch(`${BASE_URL}/api/poll/${pollId}`, {
+    const res = await fetch(`${BASE_URL}${API_ROUTES.POLL_DETAIL(pollId)}`, {
         cache: 'no-store',
     });
 

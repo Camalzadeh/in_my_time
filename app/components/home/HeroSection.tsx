@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { UI_PATHS} from "@/lib/routes";
+
 
 export default function HeroSection() {
     return (
@@ -22,7 +24,7 @@ export default function HeroSection() {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <Link
-                                href="/create-poll"
+                                href={UI_PATHS.CREATE_POLL}
                                 className="bg-primary text-primary-foreground px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-all transform hover:scale-105 flex items-center justify-center gap-2 w-full sm:w-auto"
                             >
                                 Create Your First Poll
