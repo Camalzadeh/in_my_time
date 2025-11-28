@@ -20,7 +20,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // SAFELY normalize targetDates → always valid Date()
     const normalizedConfig = {
       ...config,
       targetDates: (config.targetDates || []).map((d: string | Date) => {

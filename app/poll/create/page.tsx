@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Calendar, PlusCircle, Send, Clock, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
-import { generateTimeSlots, formatTime } from "@/lib/timeSlots";
+import { generateTimeSlots, formatTime } from "@/lib/time-slots";
 
 export default function CreatePollPage() {
   const [title, setTitle] = useState("");
@@ -35,7 +35,6 @@ export default function CreatePollPage() {
     setSingleDate("");
   };
 
-  // (we will later move this to lib, but for now it stays here)
   const generateDateRange = (start: string, end: string): string[] => {
     const result: string[] = [];
     const startDate = new Date(start);
@@ -351,7 +350,6 @@ export default function CreatePollPage() {
                       className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
                     />
                   </div>
-                  {/* PREDEFINED SLOT OPTIONS */}
                   <div>
                     <SlotPresetSelector
                       value={slotDuration}
@@ -372,7 +370,6 @@ export default function CreatePollPage() {
                 </p>
               )}
               
-              {/* success */}
               {successMessage && (
                 <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
                   {successMessage}
@@ -441,7 +438,6 @@ export default function CreatePollPage() {
                 )}
               </div>
 
-              {/* show example slots for first day */}
               {sampleSlots.length > 0 && (
                 <div className="mt-4">
                   <p className="text-[11px] text-slate-400 mb-2">
