@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Calendar } from "lucide-react";
+import { UI_PATHS} from "@/lib/routes";
+
 
 export default function Header() {
     return (
@@ -21,7 +23,7 @@ export default function Header() {
                         </a>
                     </div>
                     <Link
-                        href="/create-poll"
+                        href={UI_PATHS.CREATE_POLL}
                         className="bg-primary text-primary-foreground px-6 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
                     >
                         Create Poll
