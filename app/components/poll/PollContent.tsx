@@ -59,7 +59,6 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
         options: pollData?.options || [],
         title: pollData?.title || "No Poll Title",
         description: pollData?.description || "",
-        // Recalculate totalVoters based on unique voters in all options
         totalVoters: (() => {
             const uniqueVoters = new Set<string>();
             pollData.options?.forEach(option => option.votes?.forEach(voter => uniqueVoters.add(voter)));
@@ -88,7 +87,6 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
         const originalUserVotes = userVotes;
         const originalPollData = poll;
 
-        // Optimistic UI Update
         setUserVotes(prevVotes =>
             currentlyVoted
                 ? prevVotes.filter(id => id !== optionId)
