@@ -1,5 +1,5 @@
+import { addMinutes, setHours, setMinutes, isValid } from 'date-fns';
 import { IPoll } from '@/types/Poll';
-import { addMinutes, setHours, setMinutes } from 'date-fns';
 
 export function generateAvailableSlots(config: IPoll['config']): Date[] {
     const { targetDates, dailyStartTime, dailyEndTime, slotDuration } = config;
@@ -8,15 +8,20 @@ export function generateAvailableSlots(config: IPoll['config']): Date[] {
     const [startHour, startMinute] = dailyStartTime.split(':').map(Number);
     const [endHour, endMinute] = dailyEndTime.split(':').map(Number);
 
-    for (const targetDate of targetDates) {
-        let currentSlot = setMinutes(setHours(targetDate, startHour), startMinute);
+    for (const date of targetDates) {
+        // ensure date is a valid Date
+        const base = new Date(date);
+        if (!isValid(base)) {
+            console.error("Invalid target date:", date);
+            continue;
+        }
 
-        const endTime = setMinutes(setHours(targetDate, endHour), endMinute);
+        let current = setMinutes(setHours(base, startHour), startMinute);
+        const end = setMinutes(setHours(base, endHour), endMinute);
 
-        while (currentSlot.getTime() < endTime.getTime()) {
-            allSlots.push(currentSlot);
-
-            currentSlot = addMinutes(currentSlot, slotDuration);
+        while (current < end) {
+            allSlots.push(new Date(current));  // clone
+            current = addMinutes(current, slotDuration);
         }
     }
 
