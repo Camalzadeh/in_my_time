@@ -10,6 +10,7 @@ import {
     Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {API_ROUTES} from "@/lib/routes";
 
 interface Option {
     _id: string;
@@ -118,7 +119,7 @@ export function PollContent({ pollData, pollId }: PollContentProps) {
 
 
         try {
-            const res = await fetch(`/api/poll/${pollId}/vote`, {
+            const res = await fetch(API_ROUTES.VOTE_API(pollId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

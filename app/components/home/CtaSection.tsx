@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { UI_PATHS} from "@/lib/routes";
+
 
 export default function CtaSection() {
     return (
@@ -12,7 +14,7 @@ export default function CtaSection() {
                     Create your first poll now and see how easy it is to find the perfect time for everyone.
                 </p>
                 <Link
-                    href="/create-poll"
+                    href={UI_PATHS.CREATE_POLL}
                     className="inline-flex bg-primary text-primary-foreground px-8 py-4 rounded-full font-semibold hover:bg-primary/90 transition-all transform hover:scale-105 gap-2 items-center"
                 >
                     Get Started Now
