@@ -4,30 +4,6 @@ import { useState, useEffect } from 'react'
 import { Calendar, Users, Clock, ArrowLeft, Share2, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
-// Mock data
-const mockPollData = {
-  id: "123",
-  title: "Weekly Team Meeting",
-  description: "Let's discuss the upcoming project milestones and team updates for Q1 2024. We'll cover progress, blockers, and next steps.",
-  availableDates: [
-    "2024-01-15T14:00:00",
-    "2024-01-16T10:00:00", 
-    "2024-01-17T15:00:00",
-    "2024-01-18T11:00:00",
-    "2024-01-19T13:00:00"
-  ],
-  votes: [
-    { date: "2024-01-15T14:00:00", count: 8 },
-    { date: "2024-01-16T10:00:00", count: 12 },
-    { date: "2024-01-17T15:00:00", count: 5 },
-    { date: "2024-01-18T11:00:00", count: 9 },
-    { date: "2024-01-19T13:00:00", count: 3 }
-  ],
-  totalVotes: 37,
-  created: "2024-01-10T09:00:00",
-  participants: 15
-}
-
 interface Vote {
   date: string
   count: number
@@ -55,13 +31,11 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   useEffect(() => {
     const loadPollData = async () => {
       try {
-        // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000))
-        
         const resolvedParams = await params
-        // In real app, you would fetch: const response = await fetch(`/api/polls/${resolvedParams.id}`)
-        
-        setPoll(mockPollData)
+        // Здесь уже должен стоять реальный fetch: 
+        // const response = await fetch(`/api/polls/${resolvedParams.id}`)
+        // setPoll(await response.json())
       } catch (error) {
         console.error('Failed to load poll:', error)
       } finally {
@@ -92,29 +66,22 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
 
   const handleVote = (date: string) => {
     if (hasVoted) return
-    
     setSelectedDate(date)
     setHasVoted(true)
     setShowVoteSuccess(true)
-    
-    // Simulate API call to submit vote
-    setTimeout(() => {
-      setShowVoteSuccess(false)
-    }, 3000)
+    setTimeout(() => setShowVoteSuccess(false), 3000)
   }
 
   const handleShare = async () => {
     const pollUrl = window.location.href
-    
     if (navigator.share) {
       try {
         await navigator.share({
           title: poll?.title || 'Poll',
           text: poll?.description || '',
-          url: pollUrl,
+          url: pollUrl
         })
       } catch (err) {
-        console.log('Error sharing:', err)
         fallbackCopy(pollUrl)
       }
     } else {
@@ -183,7 +150,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+
         <div className="flex items-center justify-between mb-8">
           <Link 
             href="/"
@@ -202,7 +169,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           </button>
         </div>
 
-        {/* Success Message */}
         {showVoteSuccess && (
           <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 animate-in fade-in">
             <CheckCircle className="w-5 h-5 text-green-600" />
@@ -213,9 +179,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           </div>
         )}
 
-        {/* Main Poll Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          {/* Poll Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-8">
             <div className="flex items-center gap-3 mb-4">
               <Calendar className="w-8 h-8" />
@@ -227,7 +191,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           </div>
 
           <div className="p-8">
-            {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-blue-50 p-4 rounded-xl text-center border border-blue-100">
                 <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
@@ -259,7 +222,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
               </div>
             </div>
 
-            {/* Voting Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -322,7 +284,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                         </button>
                       </div>
 
-                      {/* Progress Bar */}
                       <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-1000 ease-out ${
@@ -337,7 +298,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
               </div>
             </div>
 
-            {/* Footer Info */}
             <div className="mt-12 pt-8 border-t border-gray-200 text-center">
               <p className="text-gray-500 text-sm">
                 Share this poll with participants to collect more votes and find the best time for everyone.
