@@ -21,7 +21,7 @@ interface PollData {
 }
 
 export default function PollPage({ params }: { params: Promise<{ id: string }> }) {
-  const [poll, setPoll] = useState<PollData | null>(null)
+  const [poll] = useState<PollData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [hasVoted, setHasVoted] = useState(false)
@@ -32,10 +32,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     const loadPollData = async () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 1000))
-        const resolvedParams = await params
-        // Здесь уже должен стоять реальный fetch: 
-        // const response = await fetch(`/api/polls/${resolvedParams.id}`)
-        // setPoll(await response.json())
       } catch (error) {
         console.error('Failed to load poll:', error)
       } finally {
@@ -81,7 +77,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           text: poll?.description || '',
           url: pollUrl
         })
-      } catch (err) {
+      } catch (_) {
         fallbackCopy(pollUrl)
       }
     } else {
@@ -136,7 +132,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
         <div className="text-center">
           <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Poll Not Found</h1>
-          <p className="text-gray-600 mb-6">The poll you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-6">The poll you are looking for does not exist.</p>
           <Link href="/" className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">
             Back to Home
           </Link>
