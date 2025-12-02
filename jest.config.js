@@ -3,6 +3,8 @@ const config = {
 
     testEnvironment: 'node',
 
+    setupFiles: ["<rootDir>/tests/load-env.js"],   // ← вот здесь
+
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
     },
