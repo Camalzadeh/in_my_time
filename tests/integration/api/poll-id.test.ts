@@ -15,10 +15,11 @@ describe("GET /api/poll/[id] integration tests", () => {
 
   it("should return 400 for invalid ID format", async () => {
     const context = {
-      params: Promise.resolve({ id: "12345" }) // invalid ID
-    };
+      params: Promise.resolve({ id: "12345" }),
+    } as unknown as { params: Promise<{ id: string }> };
 
-    const req: any = {};
+    const req = {} as unknown as import("next/server").NextRequest;
+
 
     const res = await GET(req, context);
     const body = await res.json();
@@ -29,10 +30,10 @@ describe("GET /api/poll/[id] integration tests", () => {
 
   it("should return 404 when poll does not exist", async () => {
     const context = {
-      params: Promise.resolve({ id: "64d9f0f8c19a4d23a8c9a111" }) // valid but not exists
-    };
+      params: Promise.resolve({ id: "64d9f0f8c19a4d23a8c9a111" }),
+    } as unknown as { params: Promise<{ id: string }> };
 
-    const req: any = {};
+    const req = {} as unknown as import("next/server").NextRequest;
 
     const res = await GET(req, context);
     const body = await res.json();
@@ -43,24 +44,23 @@ describe("GET /api/poll/[id] integration tests", () => {
 
   it("should return poll by ID when exists", async () => {
     const poll = await Poll.create({
-        title: "Test poll",
-        description: "desc",
-        ownerId: "user1",
-        config: {
-            targetDates: [new Date()],
-            slotDuration: 60,
-            dailyStartTime: 9,
-            dailyEndTime: 18,
-        },
-        availableDates: [new Date()],
-        });
-
+      title: "Test poll",
+      description: "desc",
+      ownerId: "user1",
+      config: {
+        targetDates: [new Date()],
+        slotDuration: 60,
+        dailyStartTime: "09:00",
+        dailyEndTime: "17:00",
+      },
+      availableDates: [new Date()],
+    });
 
     const context = {
-      params: Promise.resolve({ id: poll._id.toString() })
-    };
+      params: Promise.resolve({ id: poll._id.toString() }),
+    } as unknown as { params: Promise<{ id: string }> };
 
-    const req: any = {};
+    const req = {} as unknown as import("next/server").NextRequest;
 
     const res = await GET(req, context);
     const body = await res.json();

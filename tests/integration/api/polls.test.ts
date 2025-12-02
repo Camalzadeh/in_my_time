@@ -18,9 +18,9 @@ describe("POST /api/polls integration tests", () => {
         ownerId: "",
         config: null,
       }),
-    } as any;
+    } as unknown as Request;
 
-    const res = await POST(req);
+    const res = (await POST(req)) as Response;
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -40,12 +40,11 @@ describe("POST /api/polls integration tests", () => {
           workEndHour: 18,
         },
       }),
-    } as any;
+    } as unknown as Request;
 
-    const res = await POST(req);
+    const res = (await POST(req)) as Response;
     const body = await res.json();
 
-    // NextResponse JSON-unun statusu Response obyektində olur
     expect(res.status).toBe(500);
     expect(body.message).toBe("Server error: Could not create poll.");
   });
@@ -57,16 +56,15 @@ describe("POST /api/polls integration tests", () => {
         description: "Some description",
         ownerId: "user123",
         config: {
-            targetDates: ["2024-02-25T10:00"],
-            slotDuration: 60,
-            dailyStartTime: "09:00",
-            dailyEndTime: "17:00",
+          targetDates: ["2024-02-25T10:00"],
+          slotDuration: 60,
+          dailyStartTime: "09:00",
+          dailyEndTime: "17:00",
         },
-
       }),
-    } as any;
+    } as unknown as Request;
 
-    const res = await POST(req);
+    const res = (await POST(req)) as Response;
     const body = await res.json();
 
     expect(res.status).toBe(201);
