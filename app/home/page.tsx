@@ -1,5 +1,3 @@
-import LandingPageWrapper from "../components/home/LandingPageWrapper";
+import Home from "../page";
 
-export default function HomeRoute() {
-    return <LandingPageWrapper />;
-}
+export default Home;
