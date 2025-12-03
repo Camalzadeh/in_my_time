@@ -19,7 +19,7 @@ export default function Home() {
       } else {
         setError("No poll found with this ID");
       }
-    } catch (err) {
+    } catch (_) {
       setError("Something went wrong");
     }
   };
