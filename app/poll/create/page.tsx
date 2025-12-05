@@ -76,7 +76,13 @@ export default function CreatePollPage() {
     setTargetDates((prev) => prev.filter((d) => d !== date));
   };
 
-  const previewDates = useMemo(() => targetDates.slice(0, 4), [targetDates]);
+const MAX_PREVIEW_DATES = 16;
+
+const previewDates = useMemo(
+  () => targetDates.slice(0, MAX_PREVIEW_DATES),
+  [targetDates]
+);
+
 
   const sampleSlots = useMemo(() => {
     if (
@@ -189,12 +195,12 @@ export default function CreatePollPage() {
             for your team
           </h1>
           <p className="mt-2 text-slate-500 max-w-2xl">
-            Choose the days and daily time window you’re available. We’ll automatically
+            Choose the days and daily time window you're available. We'll automatically
             generate all the time slots for your participants to vote on.
           </p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col md:flex-row">
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 flex flex-col md:flex-row items-stretch">
           <div className="w-full md:w-7/12 p-6 sm:p-8 lg:p-10">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
@@ -390,7 +396,7 @@ export default function CreatePollPage() {
           </div>
 
           <div className="w-full md:w-5/12 bg-slate-900 text-slate-50 px-6 py-7 md:px-7 md:py-10 flex flex-col justify-between">
-            <div>
+            <div className="flex flex-col flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-300">
                 Live Preview
               </p>
@@ -402,7 +408,7 @@ export default function CreatePollPage() {
                 when participants vote.
               </p>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 flex-1 overflow-y-auto"> 
                 {previewDates.length === 0 ? (
                   <p className="text-xs text-slate-500">
                     Start adding dates to see them here.
@@ -417,7 +423,7 @@ export default function CreatePollPage() {
                         <div
                           className="h-2 rounded-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400"
                           style={{
-                            width: `${70 - idx * 10}%`,
+                            width: `${Math.max(1, 100 - idx * 5)}%`,
                           }}
                         />
                       </div>
