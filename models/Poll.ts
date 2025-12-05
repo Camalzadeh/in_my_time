@@ -2,7 +2,7 @@ import mongoose, { Schema, Model } from 'mongoose';
 import {IPoll, IVote} from "@/types/Poll";
 
 const VoteSchema: Schema = new Schema<IVote>({
-    tempVoterId: { type: String, required: true },
+    voterId: { type: String, required: true },
     voterName: { type: String, required: true },
     voterColor: { type: String, required: false },
     selectedSlots: { type: [Date], required: true },
