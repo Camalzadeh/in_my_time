@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "jest",
     "test:unit": "jest --config jest.unit.config.js",
+    "test:int": "jest tests/integration",
     "test:watch": "jest --watch"
   },
   "dependencies": {
@@ -84,7 +85,7 @@
     "eslint-plugin-react": "^7.37.5",
     "globals": "^16.5.0",
     "jest": "^30.2.0",
-    "mongodb-memory-server": "^10.3.0",
+    "mongodb-memory-server": "^10.4.1",
     "next-test-api-route-handler": "^5.0.3",
     "postcss": "^8.5",
     "supertest": "^7.1.4",
