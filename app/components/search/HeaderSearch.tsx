@@ -33,7 +33,7 @@ export default function HeaderSearch() {
         }
     };
 
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: { key: string; }) => {
         if (e.key === 'Enter') {
             checkPoll();
         }
