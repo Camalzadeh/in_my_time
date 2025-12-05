@@ -36,7 +36,7 @@ const eslintConfig = defineConfig([
 
         rules: {
             "react/react-in-jsx-scope": "off",
-            "no-undef": "off",
+            "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/no-unused-vars": ["error", {
                 "varsIgnorePattern": "^_",
                 "argsIgnorePattern": "^_",

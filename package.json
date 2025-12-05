@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "jest --detectOpenHandles",
+    "test": "jest",
     "test:unit": "jest --config jest.unit.config.js",
     "test:int": "jest tests/integration",
     "test:watch": "jest --watch"
