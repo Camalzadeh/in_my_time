@@ -1,4 +1,4 @@
-import { GET } from "@/app/api/poll/[id]/route";
+import { GET } from "@/app/api/polls/[id]/route";
 import { connectDB } from "@/lib/mongodb";
 import { Poll } from "@/models/Poll";
 import mongoose from "mongoose";
