@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Calendar, PlusCircle, Send, Clock, SlidersHorizontal } from "lucide-react";
+import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
 import { generateTimeSlots, formatTime } from "@/lib/time-slots";
 
@@ -21,10 +21,6 @@ export default function CreatePollPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  //-------------------------------------------------------
-  // Helpers
-  //-------------------------------------------------------
 
   const handleAddSingleDate = () => {
     setError(null);
