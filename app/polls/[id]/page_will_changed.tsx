@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Users, Clock, ArrowLeft, Share2, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
+
 interface Vote {
   date: string
   count: number
