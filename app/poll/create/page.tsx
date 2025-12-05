@@ -195,7 +195,7 @@ const previewDates = useMemo(
             for your team
           </h1>
           <p className="mt-2 text-slate-500 max-w-2xl">
-            Choose the days and daily time window you're available. We'll automatically
+            Choose the days and daily time window you’re available. We’ll automatically
             generate all the time slots for your participants to vote on.
           </p>
         </div>
