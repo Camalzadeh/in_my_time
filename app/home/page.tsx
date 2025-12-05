@@ -1,5 +1,7 @@
-import LandingPageWrapper from "../components/home/LandingPageWrapper";
+"use client";
 
-export default function HomeRoute() {
-    return <LandingPageWrapper />;
+import LandingPageWrapper from "@/app/components/home/LandingPageWrapper";
+
+export default function Page() {
+    return <LandingPageWrapper/>;
 }
