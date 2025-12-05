@@ -26,7 +26,7 @@ Content-Type: {{contentType}}
 
 ###
 
-@pollId = 69209b6a2b1728c76bf88487
+@pollId = 6929706508c6645b99b18675
 GET {{baseUrl}}/poll/{{pollId}}
 
 ###
