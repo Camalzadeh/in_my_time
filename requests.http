@@ -27,11 +27,11 @@ Content-Type: {{contentType}}
 ###
 
 @pollId = 6929706508c6645b99b18675
-GET {{baseUrl}}/poll/{{pollId}}
+GET {{baseUrl}}/polls/{{pollId}}
 
 ###
 
-PATCH {{baseUrl}}/poll/{{pollId}}
+PATCH {{baseUrl}}/polls/{{pollId}}
 Content-Type: {{contentType}}
 
 {
@@ -49,7 +49,7 @@ Content-Type: {{contentType}}
 
 ###
 
-PATCH {{baseUrl}}/poll/{{pollId}}
+PATCH {{baseUrl}}/polls/{{pollId}}
 Content-Type: {{contentType}}
 
 {

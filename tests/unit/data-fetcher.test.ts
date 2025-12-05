@@ -1,4 +1,9 @@
 import { getBaseUrl, getPollData } from '@/lib/data-fetcher';
+jest.mock('@/lib/routes', () => ({
+    API_ROUTES: {
+        POLL_DETAIL: (id: string) => `/api/polls/${id}`,
+    },
+}));
 
 jest.mock('next/headers', () => ({
     headers: jest.fn(),
@@ -25,7 +30,7 @@ describe('getBaseUrl', () => {
         });
 
         const url = await getBaseUrl();
-        expect(url).toBe('http://localhost:3000');
+        expect(url).toBe('');
     });
 
     it('should return HTTP URL for a local host header', async () => {
@@ -62,11 +67,12 @@ describe('getPollData', () => {
             ok: true,
             status: 200,
             json: async () => mockData,
+            text: async () => JSON.stringify(mockData),
         });
 
         const data = await getPollData('testId');
 
-        expect(fetch).toHaveBeenCalledWith('https://test.app/api/poll/testId', expect.any(Object));
+        expect(fetch).toHaveBeenCalledWith('/api/polls/testId', expect.any(Object));
         expect(data).toEqual(mockData);
     });
 
@@ -74,6 +80,7 @@ describe('getPollData', () => {
         (fetch as jest.Mock).mockResolvedValueOnce({
             ok: false,
             status: 404,
+            text: async () => 'Not Found',
         });
 
         await expect(getPollData('testId')).rejects.toThrow('NOT_FOUND_CALLED');
@@ -85,6 +92,7 @@ describe('getPollData', () => {
         (fetch as jest.Mock).mockResolvedValueOnce({
             ok: false,
             status: 500,
+            text: async () => 'Server error details',
         });
 
         await expect(getPollData('testId')).rejects.toThrow(/Failed to fetch poll data/);

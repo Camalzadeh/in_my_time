@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { Poll } from "@/models/Poll";
 import mongoose from "mongoose";
 
-describe("GET /api/poll/[id] integration tests", () => {
+describe("GET /api/polls/[id] integration tests", () => {
   beforeAll(async () => {
     await connectDB();
   });
