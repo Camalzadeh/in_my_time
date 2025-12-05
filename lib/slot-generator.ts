@@ -19,7 +19,7 @@ export function generateAvailableSlots(config: IPoll['config']): Date[] {
         const end = setMinutes(setHours(base, endHour), endMinute);
 
         while (current < end) {
-            allSlots.push(new Date(current));  // clone
+            allSlots.push(new Date(current));
             current = addMinutes(current, slotDuration);
         }
     }

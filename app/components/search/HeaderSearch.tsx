@@ -1,15 +1,14 @@
-"use client";
-
-import { useState, useMemo } from "react"; // useMemo əlavə edildi
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ArrowRight } from "lucide-react"; // ArrowRight ikonu əlavə edildi
+import { Search, ArrowRight } from "lucide-react";
+import {API_ROUTES, UI_PATHS} from "@/lib/routes";
 
 export default function HeaderSearch() {
     const [pollId, setPollId] = useState("");
     const [isError, setIsError] = useState(false);
     const router = useRouter();
 
-    const checkPoll = async () => {
+    const checkPoll = useCallback(async () => {
         if (!pollId.trim()) {
             setIsError(true);
             return;
@@ -18,54 +17,48 @@ export default function HeaderSearch() {
         setIsError(false);
 
         try {
-            const res = await fetch(`/api/polls/${pollId}`);
+            const res = await fetch(API_ROUTES.POLL_DETAIL(pollId));
 
             if (res.status === 200) {
-                router.push(`/poll/${pollId}`);
+                router.push(UI_PATHS.POLL_DETAIL(pollId));
                 setPollId("");
             }
             else {
-                // Xəta halında qırmızı sərhədi göstər
                 setIsError(true);
             }
         } catch (_) {
             setIsError(true);
         }
-    };
+    }, [pollId, router]);
 
-    const handleKeyDown = (e: { key: string; }) => {
+    const handleKeyDown = useCallback(async (e: { key: string; }) => {
         if (e.key === 'Enter') {
-            checkPoll();
+            await checkPoll();
+        }
+    }, [checkPoll]);
+
+    const handleChange = (e: { target: { value: any; }; }) => {
+        const value = e.target.value;
+        setPollId(value);
+        if (isError && value.trim()) {
+            setIsError(false);
         }
     };
 
-    // Dinamik Eni Hesablamaq Üçün useMemo istifadə edirik
     const dynamicWidthStyle = useMemo(() => {
-        // Təxmini başlanğıc en (əvvəlki kodunuzdakı 'w-64' kimi)
-        const baseWidth = 256; // w-64 təxminən 256px-dir
-
-        // Hər simvol üçün əlavə ediləcək piksel (təxmini)
+        const baseWidth = 256;
         const charWidth = 8;
-
-        // Başlanğıc eni tutmaq üçün tələb olunan simvol sayı (256 - 40 (padding/ikon yeri)) / 8
-        // 27 simvoldan sonra artım başlasın (Başlanğıc eni dolu göstərmək üçün)
         const initialCharsToFill = 27;
 
         let calculatedWidth;
 
         if (pollId.length <= initialCharsToFill) {
-            // Mətn hələ qısa olanda, ilkin böyük eni saxla
             calculatedWidth = baseWidth;
         } else {
-            // Mətn initialCharsToFill-dən uzun olduqda, eni artır
             const extraWidth = (pollId.length - initialCharsToFill) * charWidth;
             calculatedWidth = baseWidth + extraWidth;
         }
-
-        // Maksimum en (məsələn, 350px)
         const maxWidth = 350;
-
-        // Eni maksimum həddə məhdudlaşdır
         const finalWidth = Math.min(calculatedWidth, maxWidth);
 
         return {
@@ -74,11 +67,11 @@ export default function HeaderSearch() {
     }, [pollId.length]);
 
 
+    const isSubmitDisabled = !pollId.trim();
+
     return (
-        // flex-dən w-full-u çıxardıq
         <div className="flex items-center gap-2">
 
-            {/* Axtarış Input Konteyneri - Dinamik eni style ilə tətbiq etdik */}
             <div className="relative flex items-center shrink-0" style={dynamicWidthStyle}>
 
                 <Search className="absolute left-3 w-4 h-4 text-foreground/50" />
@@ -86,35 +79,34 @@ export default function HeaderSearch() {
                 <input
                     type="text"
                     value={pollId}
-                    onChange={(e) => setPollId(e.target.value)}
+                    onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Search Poll ID"
 
-                    // Sərhəd (Border) üçün dinamik sinif
                     className={`
                         w-full h-10 pl-10 pr-4 text-sm bg-border/50 rounded-full transition-all
                         focus:outline-none focus:ring-1 
                         placeholder:text-foreground/50
                         ${isError
-                        ? 'border border-red-600 focus:border-red-600 focus:ring-red-600/50' // Xəta halında QIRMIZI
-                        : 'border border-transparent focus:border-primary/50 focus:ring-primary/50' // Normal hal
+                        ? 'border border-red-600 focus:border-red-600 focus:ring-red-600/50'
+                        : 'border border-transparent focus:border-primary/50 focus:ring-primary/50'
                     }
                     `}
                 />
             </div>
 
-            {/* Yeni, Kiçik İkonlu Submit Düyməsi */}
             <button
                 onClick={checkPoll}
-                // Dəyişənin boş və ya xəta halında rəngini dəyişmək üçün sinif
+                disabled={isSubmitDisabled}
                 className={`
                     p-2 rounded-full h-8 w-8 shrink-0 transition-colors flex items-center justify-center
-                    ${(isError)
-                    ? 'bg-red-500 text-white hover:bg-red-800' // Xəta/Boş olduqda
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90' // Normal halda
+                    ${(isError) 
+                    ? 'bg-red-500 text-white hover:bg-red-800 disabled:bg-red-500/50 disabled:cursor-not-allowed'
+                    : (isSubmitDisabled)
+                    ? 'bg-primary text-primary-foreground disabled:bg-primary/70 disabled:cursor-not-allowed'
+                    :'bg-primary text-primary-foreground hover:bg-primary/90'
                 }
                 `}
-                // Düyməni disable etmək əvəzinə, rəngini dəyişib istifadəçiyə siqnal veririk
             >
                 <ArrowRight className="w-5 h-5" />
             </button>

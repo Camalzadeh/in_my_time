@@ -4,22 +4,22 @@ import {API_ROUTES} from "@/lib/routes";
 
 export async function getBaseUrl() {
     const headersList = await headers();
-
     const host = headersList.get('host');
 
-    if (!host) {
-        return 'http://localhost:3000';
+    if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) {
+        return `http://${host}`;
     }
-
-    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
-
-    return `${protocol}://${host}`;
+    if (host) {
+        return `https://${host}`;
+    }
+    return '';
 }
 
 export async function getPollData(pollId: string) {
-    const BASE_URL = await getBaseUrl();
 
-    const res = await fetch(`${BASE_URL}${API_ROUTES.POLL_DETAIL(pollId)}`, {
+    const path = API_ROUTES.POLL_DETAIL(pollId);
+
+    const res = await fetch(path, {
         cache: 'no-store',
     });
 
@@ -28,7 +28,8 @@ export async function getPollData(pollId: string) {
     }
 
     if (!res.ok) {
-        throw new Error(`Failed to fetch poll data from ${BASE_URL}. Status: ${res.status}`);
+        const errorDetail = await res.text();
+        throw new Error(`Failed to fetch poll data. Status: ${res.status}. Details: ${errorDetail}`);
     }
 
     return res.json();
