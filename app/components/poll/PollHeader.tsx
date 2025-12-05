@@ -7,9 +7,12 @@ import type { IPoll } from '@/types/Poll';
 
 interface PollHeaderProps {
     poll: IPoll;
+    isOwner: boolean;
+    voterName: string | null;
 }
 
-export default function PollHeader({ poll }: PollHeaderProps) {
+export default function PollHeader({ poll, isOwner, voterName }: PollHeaderProps) {
+    console.log("PollHeader", poll, isOwner, voterName); // TODO: Remove
     const [copyStatus, setCopyStatus] = useState<'copy' | 'copied'>('copy');
 
     const handleCopyLink = () => {
@@ -34,9 +37,9 @@ export default function PollHeader({ poll }: PollHeaderProps) {
                 <div>
                     <h1 className="text-3xl font-bold mb-2 text-gray-800">{poll.title}</h1>
                     <p className="text-gray-500 flex items-center gap-2 text-sm">
-                        <Clock className="w-4 h-4" /> {poll.config.slotDuration} dəqiqəlik slotlar
+                        <Clock className="w-4 h-4" /> {poll.config.slotDuration} min slots
                         <span className="mx-2 text-gray-300">|</span>
-                        <Users className="w-4 h-4" /> {poll.votes.length} iştirakçı
+                        <Users className="w-4 h-4" /> {poll.votes.length} participants
                     </p>
                 </div>
 
@@ -48,7 +51,7 @@ export default function PollHeader({ poll }: PollHeaderProps) {
                         : 'bg-gray-900 text-white hover:bg-gray-800 shadow-md hover:shadow-lg'}`}
                 >
                     {copyStatus === 'copied' ? <Check className="w-4 h-4"/> : <Copy className="w-4 h-4"/>}
-                    {copyStatus === 'copied' ? 'Kopyalandı' : 'Paylaş'}
+                    {copyStatus === 'copied' ? 'Copied' : 'Share Link'}
                 </button>
             </div>
         </div>
