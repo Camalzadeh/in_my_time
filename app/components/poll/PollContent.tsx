@@ -15,8 +15,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Sizin mövcud tiplərinizi import edirik
-// DİQQƏT: 'mongoose' kitabxanasını client-side bundle-a salmamaq üçün 'import type' istifadə edirik
 import type { IPoll } from '@/types/Poll';
 
 interface PollRealtimeUpdatesProps {

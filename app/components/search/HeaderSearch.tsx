@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ArrowRight } from "lucide-react";
-import {API_ROUTES, UI_PATHS} from "@/lib/routes";
+import { UI_PATHS} from "@/lib/routes";
+import {getPollStatusClient} from "@/lib/data/client/get-poll-status";
 
 export default function HeaderSearch() {
     const [pollId, setPollId] = useState("");
@@ -13,20 +14,20 @@ export default function HeaderSearch() {
             setIsError(true);
             return;
         }
-
         setIsError(false);
 
         try {
-            const res = await fetch(API_ROUTES.POLL_DETAIL(pollId));
+            const status = await getPollStatusClient(pollId);
 
-            if (res.status === 200) {
+            if (status === 200) {
                 router.push(UI_PATHS.POLL_DETAIL(pollId));
                 setPollId("");
             }
             else {
                 setIsError(true);
             }
-        } catch (_) {
+        } catch (e) {
+            console.error("Səsvermə yoxlanılarkən xəta:", e);
             setIsError(true);
         }
     }, [pollId, router]);
