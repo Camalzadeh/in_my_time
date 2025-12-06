@@ -1,7 +1,7 @@
 import { Document } from 'mongoose';
 
 export interface IVote {
-    tempVoterId: string;
+    voterId: string;
     voterName: string;
     voterColor?: string;
 

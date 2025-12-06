@@ -1,4 +1,4 @@
-import { generateAvailableSlots } from '@/lib/slot-generator';
+import { generateAvailableSlots } from '@/lib/utils/slot-generator';
 import { IPoll } from '@/types/Poll';
 
 describe('generateAvailableSlots', () => {

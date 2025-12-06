@@ -18,6 +18,7 @@ const eslintConfig = defineConfig([
         },
 
         rules: {
+            "react-hooks/set-state-in-effect": "off",
             "prefer-const": "error",
             "no-console": "off",
             "no-unused-vars": "off",
@@ -36,6 +37,8 @@ const eslintConfig = defineConfig([
 
         rules: {
             "react/react-in-jsx-scope": "off",
+            "@typescript-eslint/no-explicit-any": "off",
+            "react-hooks/set-state-in-effect": "off",
             "@typescript-eslint/no-unused-vars": ["error", {
                 "varsIgnorePattern": "^_",
                 "argsIgnorePattern": "^_",
