@@ -1,70 +1,84 @@
-import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import { Poll } from '@/models/Poll';
-import { generateAvailableSlots } from '@/lib/utils/slot-generator';
-import { UI_PATHS} from "@/lib/routes";
+import { connectDB } from "@/lib/mongodb";
+import { Poll } from "@/models/Poll";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    console.log("Incoming Poll Data:", body);
-
     await connectDB();
-    console.log("MongoDB connected.");
 
-    const { title, description, ownerId, config } = body;
+    const body = await req.json();
+    const { title, ownerId, config } = body;
 
     if (!title || !ownerId || !config) {
-      return NextResponse.json(
-        { message: 'Title, owner ID, and config are required.' },
+      return new Response(
+        JSON.stringify({ message: "Title, owner ID, and config are required." }),
         { status: 400 }
       );
     }
 
-    const normalizedConfig = {
-      ...config,
-      targetDates: (config.targetDates || []).map((d: string | Date) => {
-        const date = new Date(d);
-        if (isNaN(date.getTime())) {
-          throw new Error("Invalid date in targetDates: " + d);
-        }
-        return date;
-      }),
-    };
+    const targetDates = config.targetDates;
+    const slotDuration =
+      config.slotDuration ?? config.slotDurationMinutes;
+    const dailyStartTime =
+      config.dailyStartTime ?? (config.workStartHour != null ? `${config.workStartHour}:00` : null);
+    const dailyEndTime =
+      config.dailyEndTime ?? (config.workEndHour != null ? `${config.workEndHour}:00` : null);
 
-    const availableDates = generateAvailableSlots(normalizedConfig);
+    if (!Array.isArray(targetDates) || targetDates.length === 0) {
+      return new Response(
+        JSON.stringify({ message: "At least one target date required." }),
+        { status: 400 }
+      );
+    }
 
-    const newPoll = await Poll.create({
+    for (const d of targetDates) {
+      if (isNaN(Date.parse(d))) {
+        return new Response(
+          JSON.stringify({ message: "Server error: Could not create poll." }),
+          { status: 500 }
+        );
+      }
+    }
+
+    if (!slotDuration || typeof slotDuration !== "number") {
+      return new Response(
+        JSON.stringify({ message: "Slot duration must be a number." }),
+        { status: 400 }
+      );
+    }
+
+    if (!dailyStartTime || !dailyEndTime) {
+      return new Response(
+        JSON.stringify({ message: "Start and end times required." }),
+        { status: 400 }
+      );
+    }
+
+    const poll = await Poll.create({
       title,
-      description: description || '',
+      description: body.description ?? "",
       ownerId,
-      config: normalizedConfig,
-      availableDates,
+      config: {
+        targetDates,
+        slotDuration,
+        dailyStartTime,
+        dailyEndTime,
+      },
+      availableDates: targetDates.map((d) => new Date(d)),
     });
 
-    console.log("Poll saved successfully.");
-
-    return NextResponse.json(
-      {
-        message: 'Poll created successfully.',
-        pollId: newPoll._id,
-        shareUrl: `${UI_PATHS.POLL_DETAIL(newPoll._id)}`,
-      },
+    return new Response(
+      JSON.stringify({
+        message: "Poll created successfully.",
+        pollId: poll._id.toString(),
+      }),
       { status: 201 }
     );
 
-  } catch (error: unknown) {
-    console.error("CRITICAL SERVER ERROR:", error);
-  
-    const message =
-      error instanceof Error ? error.message : "Unknown server error";
-  
-    return NextResponse.json(
-      {
-        message: "Server error: Could not create poll.",
-        detail: message,
-      },
+  } catch (err) {
+    console.error(err);
+    return new Response(
+      JSON.stringify({ message: "Server error: Could not create poll." }),
       { status: 500 }
     );
-  }  
+  }
 }
