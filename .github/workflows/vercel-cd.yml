@@ -39,6 +39,7 @@ jobs:
         run: npm run build
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          ABLY_API_KEY: ${{ secrets.ABLY_API_KEY }}
 
       - name: 5. Deploy to Vercel Production
         id: deploy

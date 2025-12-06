@@ -64,4 +64,5 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           env_vars: |
             MONGODB_URI=${{ secrets.MONGODB_URI }}
+            ABLY_API_KEY=${{ secrets.ABLY_API_KEY }}
             NODE_ENV=production
