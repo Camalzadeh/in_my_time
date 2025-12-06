@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     for (const d of targetDates) {
       if (isNaN(Date.parse(d))) {
         return new Response(
-          JSON.stringify({ message: `Invalid date in targetDates.` }),
+          JSON.stringify({ message: "Invalid date in targetDates." }),
           { status: 500 }
         );
       }
