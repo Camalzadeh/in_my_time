@@ -1,5 +1,10 @@
-@baseUrl = http://inmytime.me/api
+@baseUrl = http://localhost:3000/api
 @contentType = application/json
+@pollId = 6929706508c6645b99b18675
+@voterId = 4f964a2f-1358-45a7-96a1-a481c4021200
+@voterName = AliceTestUser
+
+### Create New Poll (Initial Poll Setup)
 
 POST {{baseUrl}}/polls
 Content-Type: {{contentType}}
@@ -24,36 +29,30 @@ Content-Type: {{contentType}}
   ]
 }
 
-###
+---
 
-@pollId = 6929706508c6645b99b18675
+### Get Poll Details
+
 GET {{baseUrl}}/polls/{{pollId}}
 
-###
+### 🗳️ Vote/Update Vote (POST /api/poll/[pollId]/vote)
 
-PATCH {{baseUrl}}/polls/{{pollId}}
+POST {{baseUrl}}/polls/{{pollId}}/vote
 Content-Type: {{contentType}}
 
 {
-  "action": "vote",
-  "voteData": {
-    "tempVoterId": "browser_fingerprint_999",
-    "voterName": "Ahmet",
-    "voterColor": "#3498db",
-    "selectedSlots": [
-      "2025-11-25T09:00:00.000Z",
-      "2025-11-25T09:30:00.000Z"
-    ]
-  }
+  "tempVoterId": "{{voterId}}",
+  "voterName": "{{voterName}}",
+  "selectedSlots": [
+    "2025-11-25T09:00:00.000Z",
+    "2025-11-26T10:00:00.000Z",
+    "2025-11-26T11:00:00.000Z",
+    "2025-11-26T12:00:00.000Z"
+  ]
 }
 
-###
 
-PATCH {{baseUrl}}/polls/{{pollId}}
-Content-Type: {{contentType}}
 
-{
-  "action": "finalize",
-  "status": "finalized",
-  "finalTime": "2025-11-25T09:30:00.000Z"
-}
+### Get Poll Details After Voting (To verify real-time update logic)
+
+GET {{baseUrl}}/polls/{{pollId}}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { Poll } from '@/models/Poll';
-import { generateAvailableSlots } from '@/lib/slot-generator';
+import { generateAvailableSlots } from '@/lib/utils/slot-generator';
 import { UI_PATHS} from "@/lib/routes";
 
 export async function POST(request: Request) {

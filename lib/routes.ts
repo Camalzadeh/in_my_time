@@ -1,5 +1,6 @@
 export const UI_PATHS = {
-    HOME: '/',
+    BASE: '/',
+    HOME: '/home',
     CREATE_POLL: '/polls/create',
     POLL_DETAIL: (id: string) => `/polls/${id}`,
 };
