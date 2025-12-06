@@ -1,14 +1,8 @@
-import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import { Poll } from '@/models/Poll';
-import { generateAvailableSlots } from '@/lib/utils/slot-generator';
-import { UI_PATHS} from "@/lib/routes";
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { title, description, ownerId, config } = body;
+    const { title, config } = body;
 
     if (!title || typeof title !== "string") {
       return new Response(JSON.stringify({ message: "Title is required." }), { status: 400 });
