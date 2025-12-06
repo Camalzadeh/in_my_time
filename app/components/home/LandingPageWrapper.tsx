@@ -4,6 +4,7 @@ import FeaturesSection from "./FeaturesSection";
 import HowItWorksSection from "./HowItWorksSection";
 import CtaSection from "./CtaSection";
 import Footer from "./Footer";
+import SearchBar from "../search/SearchBar";
 
 export default function LandingPageWrapper() {
     return (
@@ -14,6 +15,7 @@ export default function LandingPageWrapper() {
             <HowItWorksSection />
             <CtaSection />
             <Footer />
+            <SearchBar />
         </main>
     );
 }
