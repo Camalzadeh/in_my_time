@@ -81,7 +81,10 @@ export default function CreatePollPage() {
     };
   };
 
+<<<<<<< Updated upstream:app/poll/create/page.tsx
 
+=======
+>>>>>>> Stashed changes:app/polls/create/page.tsx
   const handleAddRange = () => {
     setError(null);
     if (!rangeStart || !rangeEnd) {
@@ -90,6 +93,7 @@ export default function CreatePollPage() {
     }
 
     const dates = generateDateRange(rangeStart, rangeEnd);
+
     if (dates.length === 0) {
       setError("Invalid date range.");
       return;
@@ -112,7 +116,10 @@ export default function CreatePollPage() {
     () => targetDates.slice(0, MAX_PREVIEW_DATES),
     [targetDates]
   );
+<<<<<<< Updated upstream:app/poll/create/page.tsx
 
+=======
+>>>>>>> Stashed changes:app/polls/create/page.tsx
 
   const sampleSlots = useMemo(() => {
     if (
@@ -172,6 +179,7 @@ export default function CreatePollPage() {
       if (!res.ok) {
         setError(data.message || "Failed to create poll.");
       } else {
+        // Reset
         setTitle("");
         setDescription("");
         setSingleDate("");
@@ -195,6 +203,7 @@ export default function CreatePollPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-indigo-50 py-10 md:py-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* HEADER */}
         <div className="mb-8 text-center md:text-left">
           <p className="text-sm uppercase tracking-[0.2em] text-indigo-500 font-semibold">
             Create Poll
@@ -208,9 +217,16 @@ export default function CreatePollPage() {
           </h1>
         </div>
 
+<<<<<<< Updated upstream:app/poll/create/page.tsx
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 flex flex-col md:flex-row items-stretch">
+=======
+        {/* MAIN LAYOUT */}
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 flex flex-col md:flex-row items-stretch">
+          {/* LEFT SIDE — FORM */}
+>>>>>>> Stashed changes:app/polls/create/page.tsx
           <div className="w-full md:w-7/12 p-6 sm:p-8 lg:p-10">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* TITLE */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
                   <Calendar className="w-4 h-4 text-indigo-500" />
