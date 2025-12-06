@@ -1,4 +1,4 @@
-import PollContent from "@/app/components/poll/PollContent";
+import PollContent from "@/app/components/poll/PollRealtimeUpdates";
 import {getPollDataServer} from "@/lib/data/server/get-poll-data";
 
 interface Context{

@@ -15,7 +15,7 @@ interface VoterIdentity {
     setVoterName: (name: string) => void;
 }
 
-const useVoterIdentity = (pollOwnerId: string): VoterIdentity => {
+const useVoterIdentity = (): VoterIdentity => {
     // ID state
     const [voterId, setVoterId] = useState<string>('');
     // Nickname state
@@ -48,8 +48,6 @@ const useVoterIdentity = (pollOwnerId: string): VoterIdentity => {
         setLocalVoterName(name);
     }, []);
 
-    // Qeyd: pollOwnerId yalnız PollRealtimeUpdates.tsx daxilində owner statusunu yoxlamaq üçün lazımdır.
-    // Bu hook sadəcə ID-ni idarə edir.
 
     return {
         voterId,
