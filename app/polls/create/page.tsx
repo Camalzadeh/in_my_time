@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Calendar, PlusCircle, Send, Clock, SlidersHorizontal } from "lucide-react";
+import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
 import { generateTimeSlots, formatTime } from "@/lib/time-slots";
 
