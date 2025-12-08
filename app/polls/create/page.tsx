@@ -1,11 +1,24 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useEffect } from "react";
 import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
 import { generateTimeSlots, formatTime } from "@/lib/time-slots";
+import { useRouter } from "next/navigation";
+
 
 export default function CreatePollPage() {
+  const router = useRouter();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let ownerId = localStorage.getItem("ownerId");
+
+    if (!ownerId) {
+      ownerId = crypto.randomUUID();
+      localStorage.setItem("ownerId", ownerId);
+    }
+  },[]);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -139,16 +152,20 @@ export default function CreatePollPage() {
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
-
+    setLoading(true);
+  
     if (!title.trim()) return setError("Title is required.");
     if (targetDates.length === 0) return setError("Add at least one target date.");
     if (!dailyStartTime || !dailyEndTime) return setError("Set time window.");
     if (!slotDuration || slotDuration <= 0) return setError("Invalid slot duration.");
-
-    const payload = {
+  
+    const ownerId = localStorage.getItem("ownerId");
+    if (!ownerId) return setError("Owner ID missing in localStorage.");
+  
+    const createPayload = {
       title,
       description,
-      ownerId: "demo-owner-id",
+      ownerId,
       config: {
         targetDates,
         dailyStartTime,
@@ -156,33 +173,61 @@ export default function CreatePollPage() {
         slotDuration,
       },
     };
-
-    setLoading(true);
-
+  
     try {
       const res = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(createPayload),
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok) {
+        return setError(data.message || "Failed to create poll.");
+      }
+  
+      const pollId = data.pollId;
+      if (!pollId) return setError("Poll creation succeeded but poll ID missing.");
+  
+      const tempVoterId = ownerId;
+
+      const selectedSlots: string[] = [];
+
+      targetDates.forEach(date => {
+        const start = new Date(`${date}T${dailyStartTime}`);
+        const end = new Date(`${date}T${dailyEndTime}`);
+      
+        for (
+          let current = new Date(start);
+          current < end;
+          current = new Date(current.getTime() + slotDuration * 60000)
+        ) {
+          selectedSlots.push(current.toISOString());
+        }
       });
 
-      const data = await res.json();
+      const votePayload = {
+        tempVoterId,
+        voterName: "Owner",
+        selectedSlots
+      };
 
-      if (!res.ok) {
-        setError(data.message || "Failed to create poll.");
-      } else {
-        setTitle("");
-        setDescription("");
-        setSingleDate("");
-        setRangeStart("");
-        setRangeEnd("");
-        setTargetDates([]);
-        setDailyStartTime("09:00");
-        setDailyEndTime("17:00");
-        setSlotDuration(60);
-
-        setSuccessMessage("✅ Poll created successfully!");
+  
+      const voteRes = await fetch(`/api/polls/${pollId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(votePayload),
+      });
+  
+      const voteData = await voteRes.json();
+  
+      if (!voteRes.ok) {
+        return setError(voteData.message || "Failed to submit your vote.");
       }
+
+      router.push(`/polls/${pollId}`);
+  
     } catch (err) {
       console.error(err);
       setError("Server error.");
@@ -190,6 +235,7 @@ export default function CreatePollPage() {
       setLoading(false);
     }
   };
+  
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-indigo-50 py-10 md:py-16">
