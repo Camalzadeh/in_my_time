@@ -23,4 +23,3 @@ export async function getPollDataServer(pollId: string) {
 
     return res.json();
 }
-
