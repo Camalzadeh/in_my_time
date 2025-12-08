@@ -24,7 +24,7 @@ export default async function PollPage(context: Context) {
 
     return <PollContent pollId={pollId} initialPollData={data} />;
 
-  } catch (error) {
+  } catch (_) {
     return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
           <div className="bg-red-50 p-4 rounded-full mb-4">
