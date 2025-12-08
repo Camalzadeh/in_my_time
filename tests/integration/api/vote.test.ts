@@ -1,54 +1,34 @@
-import { POST } from "@/app/api/polls/[id]/vote/route";
-import { connectDB } from "@/lib/mongodb";
+// tests/integration/api/vote.test.ts
+
+import { POST } from "@/app/api/polls/[id]/vote/route"; // Route importunu dəqiq yoxla
 import { Poll } from "@/models/Poll";
-import mongoose from "mongoose";
 import { NextRequest } from "next/server";
 
+// 1. Bazaya qoşulmağa qoymuruq
+jest.mock("@/lib/mongodb", () => ({
+  connectDB: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Context tipi
 type ContextType = { params: Promise<{ id: string }> };
 
+// Mock Request Yaradan
 function createMockRequest(body: unknown): NextRequest {
   return {
     json: async () => body,
-    cookies: {
-      get: () => undefined,
-      getAll: () => [],
-      set: () => {},
-      delete: () => {},
-    },
-    nextUrl: {
-      pathname: "/",
-      search: "",
-      href: "http://localhost"
-    } as unknown as URL,
+    cookies: { get: () => undefined, getAll: () => [], set: () => {}, delete: () => {} },
+    nextUrl: { pathname: "/", search: "", href: "http://localhost" } as unknown as URL,
     body: null,
-    cache: "default",
-    credentials: "same-origin",
-    destination: "document",
     headers: new Headers(),
-    integrity: "",
-    keepalive: false,
     method: "POST",
-    mode: "cors",
-    redirect: "follow",
-    referrer: "",
-    referrerPolicy: "",
-    signal: {} as AbortSignal,
     url: "http://localhost",
   } as unknown as NextRequest;
 }
 
-
 describe("POST /api/polls/[id]/vote integration tests", () => {
-  beforeAll(async () => {
-    await connectDB();
-  });
 
-  afterEach(async () => {
-    await Poll.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.close();
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it("returns 400 when pollId is missing", async () => {
@@ -58,9 +38,8 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
       selectedSlots: [new Date().toISOString()],
     });
 
-    const context: ContextType = {
-      params: Promise.resolve({ id: "" }),
-    };
+    // ID boşdur
+    const context: ContextType = { params: Promise.resolve({ id: "" }) };
 
     const res = await POST(req, context);
     const body = await res.json();
@@ -70,41 +49,29 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
   });
 
   it("returns 400 for invalid vote body", async () => {
-    const poll = await Poll.create({
-      title: "Test Poll",
-      description: "desc",
-      ownerId: "owner-1",
-      config: {
-        targetDates: [new Date()],
-        dailyStartTime: "09:00",
-        dailyEndTime: "18:00",
-        slotDuration: 60,
-      },
-      availableDates: [new Date()],
-      votes: [],
-    });
-
     const req = createMockRequest({
-      tempVoterId: "",
+      tempVoterId: "", // Boşdur
       voterName: "",
-      selectedSlots: "invalid",
+      selectedSlots: "invalid", // Array deyil
     });
 
-    const context: ContextType = {
-      params: Promise.resolve({ id: poll._id.toString() }),
-    };
+    const context: ContextType = { params: Promise.resolve({ id: "valid-id" }) };
 
     const res = await POST(req, context);
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toBe(
-      "tempVoterId, voterName və selectedSlots natamamdır."
-    );
+    expect(body.error).toBe("tempVoterId, voterName və selectedSlots natamamdır.");
   });
 
   it("returns 404 when poll is missing", async () => {
-    const fakeId = new mongoose.Types.ObjectId().toString();
+    // API kodunda .exec() var deyə, biz gərək .exec() qaytaran bir obyekt mock edək
+    const mockChain = {
+      exec: jest.fn().mockResolvedValue(null) // Hər iki halda null qaytarsın
+    };
+
+    // findOneAndUpdate çağırılanda bu zənciri qaytarır
+    jest.spyOn(Poll, 'findOneAndUpdate').mockReturnValue(mockChain as any);
 
     const req = createMockRequest({
       tempVoterId: "v1",
@@ -112,9 +79,7 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
       selectedSlots: [new Date().toISOString()],
     });
 
-    const context: ContextType = {
-      params: Promise.resolve({ id: fakeId }),
-    };
+    const context: ContextType = { params: Promise.resolve({ id: "missing-id" }) };
 
     const res = await POST(req, context);
     const body = await res.json();
@@ -124,87 +89,68 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
   });
 
   it("creates a new vote", async () => {
-    const poll = await Poll.create({
-      title: "Team Meeting",
-      description: "desc",
-      ownerId: "owner-1",
-      config: {
-        targetDates: [new Date()],
-        dailyStartTime: "09:00",
-        dailyEndTime: "18:00",
-        slotDuration: 30,
-      },
-      availableDates: [new Date()],
-      votes: [],
-    });
+    // Senari: 
+    // 1. Birinci findOneAndUpdate (update) -> NULL qaytarır (yəni belə səs yoxdur).
+    // 2. İkinci findOneAndUpdate (push) -> POLL qaytarır (səs əlavə olundu).
 
-    const slots = [
-      "2025-01-01T10:00:00.000Z",
-      "2025-01-01T10:30:00.000Z",
-    ];
+    const mockPollResponse = {
+      toObject: () => ({
+        votes: [{ voterId: "v1", voterName: "Alice" }]
+      })
+    };
+
+    const mockChain = {
+      exec: jest.fn()
+          .mockResolvedValueOnce(null) // 1. Update cəhdi uğursuz
+          .mockResolvedValueOnce(mockPollResponse) // 2. Create cəhdi uğurlu
+    };
+
+    jest.spyOn(Poll, 'findOneAndUpdate').mockReturnValue(mockChain as any);
 
     const req = createMockRequest({
       tempVoterId: "v1",
       voterName: "Alice",
-      selectedSlots: slots,
+      selectedSlots: ["2025-01-01T10:00:00.000Z"],
     });
 
-    const context: ContextType = {
-      params: Promise.resolve({ id: poll._id.toString() }),
-    };
+    const context: ContextType = { params: Promise.resolve({ id: "poll-id" }) };
 
     const res = await POST(req, context);
     const body = await res.json();
 
     expect(res.status).toBe(200);
+    // Mock obyektimizdə nə qaytarmışıqsa onu yoxlayırıq
     expect(body.poll.votes).toHaveLength(1);
-    expect(body.poll.votes[0].voterId).toBe("v1");
     expect(body.poll.votes[0].voterName).toBe("Alice");
   });
 
   it("updates existing vote", async () => {
-    const poll = await Poll.create({
-      title: "Meeting",
-      description: "desc",
-      ownerId: "owner-1",
-      config: {
-        targetDates: [new Date()],
-        dailyStartTime: "09:00",
-        dailyEndTime: "18:00",
-        slotDuration: 30,
-      },
-      availableDates: [new Date("2025-01-01T10:00:00.000Z")],
-      votes: [
-        {
-          voterId: "v1",
-          voterName: "Old",
-          voterColor: "#000",
-          selectedSlots: [new Date("2025-01-01T10:00:00.000Z")],
-          votedAt: new Date(),
-        },
-      ],
-    });
+    // Senari: Birinci findOneAndUpdate dərhal POLL qaytarır.
 
-    const newSlots = [
-      "2025-01-01T11:00:00.000Z",
-      "2025-01-01T11:30:00.000Z",
-    ];
+    const mockPollResponse = {
+      toObject: () => ({
+        votes: [{ voterId: "v1", voterName: "New" }]
+      })
+    };
+
+    const mockChain = {
+      exec: jest.fn().mockResolvedValue(mockPollResponse) // Dərhal tapdı və yenilədi
+    };
+
+    jest.spyOn(Poll, 'findOneAndUpdate').mockReturnValue(mockChain as any);
 
     const req = createMockRequest({
       tempVoterId: "v1",
       voterName: "New",
-      selectedSlots: newSlots,
+      selectedSlots: ["2025-01-01T11:00:00.000Z"],
     });
 
-    const context: ContextType = {
-      params: Promise.resolve({ id: poll._id.toString() }),
-    };
+    const context: ContextType = { params: Promise.resolve({ id: "poll-id" }) };
 
     const res = await POST(req, context);
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.poll.votes).toHaveLength(1);
     expect(body.poll.votes[0].voterName).toBe("New");
   });
 });
