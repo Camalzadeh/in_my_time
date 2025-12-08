@@ -11,11 +11,11 @@ export default function CreatePollPage() {
   const router = useRouter();
   useEffect(() => {
     if (typeof window === "undefined") return;
-    let ownerId = localStorage.getItem("ownerId");
+    let voterId = localStorage.getItem("inmytime_voter_id");
 
-    if (!ownerId) {
-      ownerId = crypto.randomUUID();
-      localStorage.setItem("ownerId", ownerId);
+    if (!voterId) {
+      voterId = crypto.randomUUID();
+      localStorage.setItem("inmytime_voter_id", voterId);
     }
   },[]);
 
@@ -159,13 +159,20 @@ export default function CreatePollPage() {
     if (!dailyStartTime || !dailyEndTime) return setError("Set time window.");
     if (!slotDuration || slotDuration <= 0) return setError("Invalid slot duration.");
   
-    const ownerId = localStorage.getItem("ownerId");
-    if (!ownerId) return setError("Owner ID missing in localStorage.");
+    const voterId = localStorage.getItem("inmytime_voter_id");
+    const voterName = localStorage.getItem("inmytime_voter_name") || "Owner";
   
+
+  if (!voterId) {
+    setError("User identity not found in localStorage.");
+    setLoading(false);
+    return;
+  }
+
     const createPayload = {
       title,
       description,
-      ownerId,
+      ownerId:voterId,
       config: {
         targetDates,
         dailyStartTime,
@@ -189,8 +196,6 @@ export default function CreatePollPage() {
   
       const pollId = data.pollId;
       if (!pollId) return setError("Poll creation succeeded but poll ID missing.");
-  
-      const tempVoterId = ownerId;
 
       const selectedSlots: string[] = [];
 
@@ -208,9 +213,9 @@ export default function CreatePollPage() {
       });
 
       const votePayload = {
-        tempVoterId,
-        voterName: "Owner",
-        selectedSlots
+        tempVoterId: voterId,
+        voterName,
+        selectedSlots,
       };
 
   
