@@ -39,7 +39,7 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toBe("pollId tələb olunur.");
+    expect(body.error).toBe("PollId is required.");
   });
 
   it("returns 400 for invalid vote body", async () => {
@@ -55,7 +55,7 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body.error).toBe("tempVoterId, voterName və selectedSlots natamamdır.");
+    expect(body.error).toBe("tempVoterId, voterName, and selectedSlots are incomplete.");
   });
 
   it("returns 404 when poll is missing", async () => {
@@ -77,7 +77,7 @@ describe("POST /api/polls/[id]/vote integration tests", () => {
     const body = await res.json();
 
     expect(res.status).toBe(404);
-    expect(body.error).toBe("Səsvermə obyekti tapılmadı və ya yenilənmədi.");
+    expect(body.error).toBe("Poll object not found or update failed.");
   });
 
   it("creates a new vote", async () => {

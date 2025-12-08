@@ -27,7 +27,7 @@ export default function HeaderSearch() {
                 setIsError(true);
             }
         } catch (e) {
-            console.error("Səsvermə yoxlanılarkən xəta:", e);
+            console.error("Server Error: ", e);
             setIsError(true);
         }
     }, [pollId, router]);

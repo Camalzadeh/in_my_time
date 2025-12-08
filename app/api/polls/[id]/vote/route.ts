@@ -3,7 +3,6 @@ import { connectDB } from '@/lib/mongodb';
 import { Poll } from '@/models/Poll';
 import type { IPoll, IVote } from '@/types/Poll';
 
-
 interface RouteParams {
     params: Promise<{
         id: string;
@@ -12,10 +11,10 @@ interface RouteParams {
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
     await connectDB();
-    const pollId =(await params).id;
+    const pollId = (await params).id;
 
     if (!pollId) {
-        return NextResponse.json({ error: 'pollId tələb olunur.' }, { status: 400 });
+        return NextResponse.json({ error: 'PollId is required.' }, { status: 400 });
     }
 
     try {
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         const { tempVoterId, voterName, selectedSlots } = body;
 
         if (!tempVoterId || !voterName || !selectedSlots || !Array.isArray(selectedSlots)) {
-            return NextResponse.json({ error: 'tempVoterId, voterName və selectedSlots natamamdır.' }, { status: 400 });
+            return NextResponse.json({ error: 'tempVoterId, voterName, and selectedSlots are incomplete.' }, { status: 400 });
         }
 
         const selectedDates = selectedSlots.map((dateString: string) => new Date(dateString));
@@ -70,16 +69,16 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
 
         if (!updatedPoll) {
-            return NextResponse.json({ error: 'Səsvermə obyekti tapılmadı və ya yenilənmədi.' }, { status: 404 });
+            return NextResponse.json({ error: 'Poll object not found or update failed.' }, { status: 404 });
         }
 
         return NextResponse.json({
-            message: 'Səs uğurla yeniləndi. Real-time baza triggeri gözlənilir.',
+            message: 'Vote successfully updated. Waiting for real-time database trigger.',
             poll: updatedPoll.toObject()
         }, { status: 200 });
 
     } catch (error) {
-        console.error('API Xətası:', error);
-        return NextResponse.json({ error: 'Daxili Server Xətası.' }, { status: 500 });
+        console.error('API Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error.' }, { status: 500 });
     }
 }
