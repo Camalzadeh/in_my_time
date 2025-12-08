@@ -1,11 +1,9 @@
-// tests/integration/api/finalize.test.ts
 
 import { POST } from "@/app/api/polls/[id]/finalize/route";
 import { Poll } from "@/models/Poll";
 import mongoose from "mongoose";
 import { NextRequest } from "next/server";
 
-// 1. Database əlaqəsini söndürürük
 jest.mock("@/lib/mongodb", () => ({
   connectDB: jest.fn().mockResolvedValue(undefined),
 }));
@@ -44,7 +42,6 @@ describe("POST /api/polls/[id]/finalize integration tests", () => {
   it("returns 400 for invalid poll ID format", async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // FIX: API CastError gözləyir, ona görə mock-u elə qururuq ki, xəta atsın
     jest.spyOn(Poll, 'findById').mockRejectedValue(new mongoose.Error.CastError('ObjectId', '12345', 'model'));
 
     const req = createMockRequest({ status: "closed", finalDate: new Date().toISOString() });
@@ -75,11 +72,8 @@ describe("POST /api/polls/[id]/finalize integration tests", () => {
     const validId = new mongoose.Types.ObjectId().toString();
     const finalDate = new Date("2025-01-01T12:00:00.000Z").toISOString();
 
-    // 1. findById çağırılanda boş olmayan bir obyekt qaytarsın (404 olmasın)
     jest.spyOn(Poll, 'findById').mockResolvedValue({ _id: validId } as any);
 
-    // 2. ƏSAS HİSSƏ: findByIdAndUpdate çağırılanda yenilənmiş datanı qaytarsın
-    // Sənin API kodun bunu gözləyir!
     jest.spyOn(Poll, 'findByIdAndUpdate').mockResolvedValue({
       _id: validId,
       status: 'finalized',

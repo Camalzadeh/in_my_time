@@ -10,12 +10,11 @@ import {
 
 interface SlotData {
     count: number;
-    // Digər sahələr bu komponent üçün vacib deyil
 }
 
 interface ScheduleDayGroup {
-    date: string;       // Məs: "Monday, Oct 24"
-    fullDate: string;   // ISO String
+    date: string;
+    fullDate: string;
     slots: SlotData[];
 }
 
@@ -24,8 +23,7 @@ interface DayNavigatorProps {
     currentDayIndex: number;
     handlePrevDay: () => void;
     handleNextDay: () => void;
-    handleDaySelect: (e: React.ChangeEvent<HTMLSelectElement>) => void; // Bu propu saxlayırıq, amma aşağıda custom handler işlədəcəyik
-    // Alternativ birbaşa index dəyişən prop:
+    handleDaySelect: (e: React.ChangeEvent<HTMLSelectElement>) => void;
     onSelectIndex?: (index: number) => void;
 }
 
@@ -40,7 +38,6 @@ export default function DayNavigator({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Dropdown-dan kənara klikləyəndə bağlamaq üçün
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -55,17 +52,14 @@ export default function DayNavigator({
 
     const currentDay = scheduleData[currentDayIndex];
 
-    // Helper: Bir gündəki ümumi səsləri hesablamaq
     const getDayTotalVotes = (day: ScheduleDayGroup) => {
         return day.slots.reduce((acc, slot) => acc + slot.count, 0);
     };
 
-    // Custom select handler
     const handleCustomSelect = (index: number) => {
         if (onSelectIndex) {
             onSelectIndex(index);
         } else {
-            // React.ChangeEvent simulyasiyası (əgər parent component köhnə məntiqlə işləyirsə)
             const event = {
                 target: { value: String(index) }
             } as React.ChangeEvent<HTMLSelectElement>;
@@ -77,7 +71,6 @@ export default function DayNavigator({
     return (
         <div className="flex items-center justify-between gap-3 mb-6 relative z-30" ref={dropdownRef}>
 
-            {/* PREV BUTTON */}
             <button
                 onClick={handlePrevDay}
                 disabled={currentDayIndex === 0}
@@ -86,7 +79,6 @@ export default function DayNavigator({
                 <ChevronLeft className="w-5 h-5" />
             </button>
 
-            {/* CUSTOM DROPDOWN TRIGGER */}
             <div className="relative flex-1 max-w-sm">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
@@ -107,7 +99,6 @@ export default function DayNavigator({
                     />
                 </button>
 
-                {/* DROPDOWN MENU */}
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
@@ -137,7 +128,6 @@ export default function DayNavigator({
                                                 <span>{day.date}</span>
                                             </div>
 
-                                            {/* Vote Count Badge */}
                                             {voteCount > 0 && (
                                                 <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${
                                                     isSelected
@@ -157,7 +147,6 @@ export default function DayNavigator({
                 </AnimatePresence>
             </div>
 
-            {/* NEXT BUTTON */}
             <button
                 onClick={handleNextDay}
                 disabled={currentDayIndex === scheduleData.length - 1}

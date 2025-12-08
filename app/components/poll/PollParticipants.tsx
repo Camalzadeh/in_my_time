@@ -24,7 +24,6 @@ export default function PollParticipants({ votes, currentVoterId, isOwner, onCle
 
     return (
         <div className="lg:col-span-4 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 h-fit sticky top-6">
-            {/* Compact Header */}
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                     <Users className="w-5 h-5 text-indigo-500" />
@@ -35,7 +34,6 @@ export default function PollParticipants({ votes, currentVoterId, isOwner, onCle
                 </span>
             </div>
 
-            {/* List View */}
             <div className="flex flex-col gap-2">
                 {votes.map((vote, idx) => {
                     const slotCount = vote.selectedSlots ? vote.selectedSlots.length : 0;
@@ -57,7 +55,6 @@ export default function PollParticipants({ votes, currentVoterId, isOwner, onCle
                             `}
                         >
                             <div className="flex items-center gap-3 min-w-0">
-                                {/* Compact Avatar */}
                                 <div className={`
                                     relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
                                     ${isMe
@@ -73,7 +70,6 @@ export default function PollParticipants({ votes, currentVoterId, isOwner, onCle
                                     )}
                                 </div>
 
-                                {/* User Info */}
                                 <div className="min-w-0 flex flex-col">
                                     <div className="flex items-center gap-1.5">
                                         <span className={`text-sm font-semibold truncate ${isMe ? 'text-indigo-900' : 'text-gray-900'}`}>
@@ -88,9 +84,7 @@ export default function PollParticipants({ votes, currentVoterId, isOwner, onCle
                                 </div>
                             </div>
 
-                            {/* Right Side: Stats & Actions */}
                             <div className="flex items-center gap-3 pl-2">
-                                {/* Slot Badge */}
                                 <div className={`
                                     text-xs font-bold px-2.5 py-1 rounded-lg
                                     ${isMe ? 'bg-white text-indigo-600 border border-indigo-100' : 'bg-gray-100 text-gray-600'}
@@ -98,7 +92,6 @@ export default function PollParticipants({ votes, currentVoterId, isOwner, onCle
                                     {slotCount} <span className="font-normal opacity-70 ml-0.5">slots</span>
                                 </div>
 
-                                {/* Delete Button */}
                                 {showDelete && (
                                     <button
                                         onClick={() => onClearVote(vote.voterId, vote.voterName)}

@@ -1,4 +1,3 @@
-// /api/poll/[pollId]/vote/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { Poll } from '@/models/Poll';
@@ -52,13 +51,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             const newVote: IVote = {
                 voterId: tempVoterId,
                 voterName: voterName,
-                voterColor: '#000000', // Default rəng
+                voterColor: '#000000',
                 selectedSlots: selectedDates,
                 votedAt: votedAt,
             };
 
             const pushAttempt = await Poll.findOneAndUpdate(
-                { _id: pollId }, // Bütün Poll obyektini tapın
+                { _id: pollId },
                 {
                     $push: { votes: newVote },
                     $set: { updatedAt: votedAt }

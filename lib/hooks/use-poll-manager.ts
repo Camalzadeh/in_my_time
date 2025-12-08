@@ -16,14 +16,11 @@ interface RankedSlot {
 }
 
 export function usePollManager(poll: IPoll, pollId: string, voterId: string, voterName: string | null) {
-    // --- STATE ---
     const [initialSelectedSlots, setInitialSelectedSlots] = useState<string[]>([]);
     const [currentSelections, setCurrentSelections] = useState<string[]>([]);
 
-    // Finalize Modal State
     const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
 
-    // --- DERIVED STATE ---
     const hasVoted = useMemo(() => poll.votes.some(v => v.voterId === voterId), [poll.votes, voterId]);
     const isOwner = poll.ownerId === voterId;
 
@@ -33,7 +30,6 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
         return currentSorted !== initialSorted;
     }, [currentSelections, initialSelectedSlots]);
 
-    // --- DATA TRANSFORMATION (Statistics & Schedule) ---
     const scheduleData: ScheduleDayGroup[] = useMemo(() => {
         const groups: ScheduleDayGroup[] = [];
         poll.config.targetDates.forEach((dateInput) => {
@@ -83,7 +79,6 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
         return allSlots.sort((a, b) => b.count - a.count).slice(0, 5);
     }, [scheduleData]);
 
-    // Finalize Modal üçün bütün dolu slotların sıralanması
     const rankedSlots: RankedSlot[] = useMemo(() => {
         const all: RankedSlot[] = [];
         scheduleData.forEach(day => {
@@ -101,9 +96,7 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
         return all.sort((a, b) => b.count - a.count);
     }, [scheduleData]);
 
-    // --- EFFECTS ---
 
-    // Sync with DB updates
     useEffect(() => {
         if (!voterId) return;
 
@@ -121,7 +114,6 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
         }
     }, [voterId, poll.votes, initialSelectedSlots]);
 
-    // Send initial empty vote
     const sendEmptyVote = useCallback(async (currId: string, currName: string) => {
         try {
             await fetch(`/api/polls/${pollId}/vote`, {
@@ -141,7 +133,6 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
     }, [voterId, voterName, hasVoted, sendEmptyVote]);
 
 
-    // --- ACTIONS ---
 
     const handleSlotClick = (iso: string) => {
         setCurrentSelections(prev => prev.includes(iso) ? prev.filter(i => i !== iso) : [...prev, iso]);
@@ -175,7 +166,6 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
         }
     };
 
-    // --- FINALIZE LOGIC ---
     const openFinalizeModal = () => setIsFinalizeModalOpen(true);
     const closeFinalizeModal = () => setIsFinalizeModalOpen(false);
 
@@ -199,7 +189,6 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
         }
     };
 
-    // --- STYLING LOGIC ---
     const getSlotStyle = (count: number, iso: string): string => {
         const isSelected = currentSelections.includes(iso);
         const isInitiallySelected = initialSelectedSlots.includes(iso);
@@ -218,23 +207,19 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
     };
 
     return {
-        // Data
         scheduleData,
         leaderboard,
         maxVoteCount,
         rankedSlots,
 
-        // User State
         isOwner,
         hasVoted,
         currentSelections,
         initialSelectedSlots,
         areSelectionsDifferent,
 
-        // Modal State
         isFinalizeModalOpen,
 
-        // Actions
         handleSlotClick,
         handleSendVotes,
         handleClearVote,

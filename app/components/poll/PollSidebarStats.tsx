@@ -1,5 +1,3 @@
-// components/poll/PollSidebarStats.tsx
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, CalendarDays, Vote, Sparkles } from 'lucide-react';
@@ -32,9 +30,7 @@ export default function PollSidebarStats({ slotDuration, scheduleData }: PollSid
             transition={{ delay: 0.2 }}
             className="space-y-6"
         >
-            {/* --- Info Card --- */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 p-6 text-white shadow-xl shadow-indigo-200/50">
-                {/* Decorative Background Elements */}
                 <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
                 <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-purple-500/20 blur-3xl" />
 
@@ -54,7 +50,6 @@ export default function PollSidebarStats({ slotDuration, scheduleData }: PollSid
                 </div>
             </div>
 
-            {/* --- Stats Card --- */}
             <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="mb-5 flex items-center gap-2.5 border-b border-gray-100 pb-4">
                     <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
@@ -64,7 +59,6 @@ export default function PollSidebarStats({ slotDuration, scheduleData }: PollSid
                 </div>
 
                 <div className="space-y-4">
-                    {/* Total Votes Stat */}
                     <div className="flex items-center justify-between rounded-2xl border border-gray-50 bg-gray-50/50 p-4 transition-colors hover:border-gray-100 hover:bg-gray-50">
                         <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100">
@@ -77,7 +71,6 @@ export default function PollSidebarStats({ slotDuration, scheduleData }: PollSid
                         </div>
                     </div>
 
-                    {/* Popular Day Stat */}
                     <div className="flex items-center justify-between rounded-2xl border border-gray-50 bg-gray-50/50 p-4 transition-colors hover:border-gray-100 hover:bg-gray-50">
                         <div className="flex items-center gap-3 w-full">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100">

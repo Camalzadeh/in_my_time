@@ -15,7 +15,6 @@ export function generateTimeSlots(
     return slots;
   }
   
-  // Format a Date object into HH:mm
   export function formatTime(date: Date): string {
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",

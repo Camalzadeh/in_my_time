@@ -1,4 +1,3 @@
-// hooks/use-poll-realtime.ts
 'use client';
 
 import { useState } from 'react';

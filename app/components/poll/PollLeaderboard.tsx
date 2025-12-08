@@ -1,5 +1,3 @@
-// components/poll/PollLeaderboard.tsx
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, CalendarDays, Users, Star } from 'lucide-react';
@@ -62,7 +60,6 @@ export default function PollLeaderboard({ leaderboard, maxVoteCount }: PollLeade
 
     return (
         <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-            {/* Header */}
             <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
                 <div className="p-2 bg-yellow-50 rounded-xl text-yellow-600">
                     <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
@@ -73,7 +70,6 @@ export default function PollLeaderboard({ leaderboard, maxVoteCount }: PollLeade
                 </div>
             </div>
 
-            {/* List View */}
             <div className="flex flex-col gap-3">
                 {leaderboard.map((slot, index) => {
                     const config = getRankConfig(index);
@@ -91,7 +87,6 @@ export default function PollLeaderboard({ leaderboard, maxVoteCount }: PollLeade
                             `}
                         >
                             <div className="relative z-10 flex items-center justify-between gap-4">
-                                {/* Left: Rank & Time */}
                                 <div className="flex items-center gap-4">
                                     <div className={`
                                         w-10 h-10 flex items-center justify-center rounded-xl shadow-sm border border-white/50
@@ -111,7 +106,6 @@ export default function PollLeaderboard({ leaderboard, maxVoteCount }: PollLeade
                                     </div>
                                 </div>
 
-                                {/* Right: Stats */}
                                 <div className="text-right">
                                     <div className="flex items-center justify-end gap-1.5 text-sm font-bold text-gray-900">
                                         <Users className="w-4 h-4 text-gray-400" />
@@ -123,7 +117,6 @@ export default function PollLeaderboard({ leaderboard, maxVoteCount }: PollLeade
                                 </div>
                             </div>
 
-                            {/* Progress Line (Bottom) */}
                             <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/5">
                                 <motion.div
                                     initial={{ width: 0 }}
