@@ -20,7 +20,7 @@ interface PollHeaderProps {
 }
 
 export default function PollHeader({ poll, isOwner, voterName, onEditName }: PollHeaderProps) {
-    const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+    const [copyStatus, setCopyStatus] = useState('idle');
 
     const handleCopyLink = () => {
         const pollUrl = window.location.href;
@@ -100,7 +100,7 @@ export default function PollHeader({ poll, isOwner, voterName, onEditName }: Pol
                     </button>
 
                     {voterName && (
-                        <div className="hidden md:flex flex-col items-end border-l border-gray-100 pl-4 ml-1">
+                        <div className="flex flex-col items-end border-l border-gray-100 pl-4 ml-1">
                             <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Voting as</div>
                             <button
                                 onClick={onEditName}

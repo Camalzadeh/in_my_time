@@ -5,7 +5,7 @@ import { getBaseUrl } from "@/lib/data/get-base-url";
 
 export async function getPollDataServer(pollId: string) {
     const baseUrl = await getBaseUrl();
-    const apiPath = API_ROUTES.POLL_DETAIL(pollId);
+    const apiPath = API_ROUTES.POLL_DETAIL_API(pollId);
     const fullUrl = `${baseUrl}${apiPath}`;
 
     const res = await fetch(fullUrl, {

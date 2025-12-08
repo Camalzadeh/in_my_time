@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { IPoll } from '@/types/Poll';
 import generateSlots from "@/lib/utils/generate-slots";
+import {API_ROUTES} from "@/lib/routes";
 
 interface ScheduleDayGroup {
     date: string;
@@ -116,7 +117,7 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
 
     const sendEmptyVote = useCallback(async (currId: string, currName: string) => {
         try {
-            await fetch(`/api/polls/${pollId}/vote`, {
+            await fetch(API_ROUTES.VOTE_POLL_API(pollId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tempVoterId: currId, voterName: currName, selectedSlots: [] }),
@@ -141,7 +142,7 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
     const handleSendVotes = async () => {
         if (poll.status !== 'open' || !voterId || !voterName) return;
         try {
-            const response = await fetch(`/api/polls/${pollId}/vote`, {
+            const response = await fetch(API_ROUTES.VOTE_POLL_API(pollId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tempVoterId: voterId, voterName: voterName, selectedSlots: currentSelections }),
@@ -154,7 +155,7 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
 
     const handleClearVote = async (targetVoterId: string, targetVoterName: string) => {
         try {
-            const response = await fetch(`/api/polls/${pollId}/vote`, {
+            const response = await fetch(API_ROUTES.VOTE_POLL_API(pollId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tempVoterId: targetVoterId, voterName: targetVoterName, selectedSlots: [] }),
@@ -171,7 +172,7 @@ export function usePollManager(poll: IPoll, pollId: string, voterId: string, vot
 
     const confirmFinalizePoll = async (finalIso: string) => {
         try {
-            const response = await fetch(`/api/polls/${pollId}/finalize`, {
+            const response = await fetch(API_ROUTES.FINALIZE_POLL_API(pollId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
