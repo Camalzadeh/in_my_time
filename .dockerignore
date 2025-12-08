@@ -9,6 +9,7 @@ yarn-error.log
 http-client.env.json
 requests.http
 
+/docs/
 .next/
 out/
 .vercel/
