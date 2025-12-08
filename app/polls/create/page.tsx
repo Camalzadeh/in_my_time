@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
-import { generateTimeSlots, formatTime } from "@/lib/time-slots";
+import { generateTimeSlots, formatTime } from "@/lib/utils/time-slots";
 
 export default function CreatePollPage() {
   const [title, setTitle] = useState("");
