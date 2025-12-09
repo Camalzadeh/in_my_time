@@ -7,6 +7,7 @@ import { generateTimeSlots, formatTime } from "@/lib/time-slots";
 import { generateDateRange, getNextWeekRange, getNextMonthRange } from "@/lib/utils/date-ranges";
 import { buildSelectedSlots } from "@/lib/utils/poll-slots";
 import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
 
 export default function CreatePollPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function CreatePollPage() {
     let voterId = localStorage.getItem("inmytime_voter_id");
 
     if (!voterId) {
-      voterId = crypto.randomUUID();
+      voterId = uuidv4();
       localStorage.setItem("inmytime_voter_id", voterId);
     }
   }, []);
