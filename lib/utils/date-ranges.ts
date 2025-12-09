@@ -1,5 +1,3 @@
-// lib/date-ranges.ts
-
 export type DateRange = {
     start: string;
     end: string;
@@ -7,9 +5,7 @@ export type DateRange = {
   
   const formatISO = (date: Date): string => date.toISOString().slice(0, 10);
   
-  /**
-   * Generate an array of ISO date strings (YYYY-MM-DD) between start and end (inclusive).
-   */
+
   export function generateDateRange(start: string, end: string): string[] {
     const result: string[] = [];
     const startDate = new Date(start);
@@ -46,9 +42,7 @@ export type DateRange = {
     };
   }
   
-  /**
-   * Get the next full calendar month range.
-   */
+
   export function getNextMonthRange(today: Date = new Date()): DateRange {
     const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
     const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
