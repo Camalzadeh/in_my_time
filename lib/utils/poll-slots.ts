@@ -1,9 +1,3 @@
-// lib/poll-slots.ts
-
-/**
- * Build an array of ISO strings representing all time slots
- * across all target dates, given daily start/end times and slot duration.
- */
 export function buildSelectedSlots(
     targetDates: string[],
     dailyStartTime: string,

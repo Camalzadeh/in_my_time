@@ -23,11 +23,9 @@ export type DateRange = {
     return result;
   }
   
-  /**
-   * Get the next week range (Monday–Sunday) starting from "today".
-   */
+
   export function getNextWeekRange(today: Date = new Date()): DateRange {
-    const day = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const day = today.getDay(); 
     const diffToMonday = (1 - day + 7) % 7;
   
     const nextMonday = new Date(today);
