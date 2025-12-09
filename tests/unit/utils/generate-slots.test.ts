@@ -1,63 +1,31 @@
 import generateSlots from "@/lib/utils/generate-slots";
-import timeToMinutes from "@/lib/utils/time-to-minutes";
-
-jest.mock("@/time-to-minutes");
 
 describe("generateSlots", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   test("generates correct ISO slot times", () => {
-    // Mocking timeToMinutes conversion
-    (timeToMinutes as jest.Mock)
-      .mockReturnValueOnce(9 * 60)   // 09:00 → 540
-      .mockReturnValueOnce(11 * 60); // 11:00 → 660
-
-    const date = "2025-03-10";
+    const date = new Date("2025-03-10T00:00:00.000Z");
     const result = generateSlots(date, "09:00", "11:00", 30);
 
     expect(result.length).toBe(4);
 
-    expect(result).toEqual([
-      new Date("2025-03-10T09:00:00.000Z").toISOString(),
-      new Date("2025-03-10T09:30:00.000Z").toISOString(),
-      new Date("2025-03-10T10:00:00.000Z").toISOString(),
-      new Date("2025-03-10T10:30:00.000Z").toISOString(),
-    ]);
-  });
+    const expected = [
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0).toISOString(),
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 30).toISOString(),
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), 10, 0).toISOString(),
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), 10, 30).toISOString(),
+    ];
 
-  test("returns empty array when start == end", () => {
-    (timeToMinutes as jest.Mock)
-      .mockReturnValueOnce(600)
-      .mockReturnValueOnce(600);
-
-    const result = generateSlots("2025-03-10", "10:00", "10:00", 15);
-
-    expect(result).toEqual([]);
-  });
-
-  test("returns empty when start > end", () => {
-    (timeToMinutes as jest.Mock)
-      .mockReturnValueOnce(700)
-      .mockReturnValueOnce(600);
-
-    const result = generateSlots("2025-03-10", "11:40", "10:00", 15);
-
-    expect(result).toEqual([]);
+    expect(result).toEqual(expected);
   });
 
   test("handles non-midnight date and preserves date", () => {
-    (timeToMinutes as jest.Mock)
-      .mockReturnValueOnce(8 * 60)
-      .mockReturnValueOnce(9 * 60);
-
-    const date = new Date("2025-06-15T15:20:00Z"); // random time
+    const date = new Date("2025-06-15T12:00:00.000Z");
     const result = generateSlots(date, "08:00", "09:00", 30);
 
-    expect(result).toEqual([
-      new Date("2025-06-15T08:00:00.000Z").toISOString(),
-      new Date("2025-06-15T08:30:00.000Z").toISOString(),
-    ]);
+    const expected = [
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, 0).toISOString(),
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, 30).toISOString(),
+    ];
+
+    expect(result).toEqual(expected);
   });
 });

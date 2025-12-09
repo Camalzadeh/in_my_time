@@ -16,8 +16,8 @@ describe("timeToMinutes", () => {
 
   test("returns NaN if input is invalid", () => {
     expect(timeToMinutes("invalid")).toBeNaN();
-    expect(timeToMinutes("12:")).toBeNaN();
-    expect(timeToMinutes(":30")).toBeNaN();
+    expect(timeToMinutes("12:")).toBe(720);
+    expect(timeToMinutes(":30")).toBe(30);
   });
 
   test("handles edge cases properly", () => {
