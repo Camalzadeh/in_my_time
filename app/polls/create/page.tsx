@@ -4,11 +4,13 @@ import { FormEvent, useMemo, useState, useEffect } from "react";
 import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
 import { generateTimeSlots, formatTime } from "@/lib/time-slots";
+import { generateDateRange, getNextWeekRange, getNextMonthRange } from "@/lib/utils/date-ranges";
+import { buildSelectedSlots } from "@/lib/utils/poll-slots";
 import { useRouter } from "next/navigation";
-
 
 export default function CreatePollPage() {
   const router = useRouter();
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     let voterId = localStorage.getItem("inmytime_voter_id");
@@ -17,7 +19,7 @@ export default function CreatePollPage() {
       voterId = crypto.randomUUID();
       localStorage.setItem("inmytime_voter_id", voterId);
     }
-  },[]);
+  }, []);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -45,53 +47,6 @@ export default function CreatePollPage() {
     });
 
     setSingleDate("");
-  };
-
-  const generateDateRange = (start: string, end: string): string[] => {
-    const result: string[] = [];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return result;
-    if (startDate > endDate) return result;
-
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      const iso = current.toISOString().slice(0, 10);
-      result.push(iso);
-      current.setDate(current.getDate() + 1);
-    }
-    return result;
-  };
-
-  const formatISO = (date: Date) => date.toISOString().slice(0, 10);
-
-  const getNextWeekRange = () => {
-    const today = new Date();
-    const day = today.getDay();
-    const diffToMonday = (1 - day + 7) % 7;
-
-    const nextMonday = new Date(today);
-    nextMonday.setDate(today.getDate() + diffToMonday);
-
-    const nextSunday = new Date(nextMonday);
-    nextSunday.setDate(nextMonday.getDate() + 6);
-
-    return {
-      start: formatISO(nextMonday),
-      end: formatISO(nextSunday),
-    };
-  };
-
-  const getNextMonthRange = () => {
-    const today = new Date();
-    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-    const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-
-    return {
-      start: formatISO(nextMonthStart),
-      end: formatISO(nextMonthEnd),
-    };
   };
 
   const handleAddRange = () => {
@@ -153,26 +108,37 @@ export default function CreatePollPage() {
     setError(null);
     setSuccessMessage(null);
     setLoading(true);
-  
-    if (!title.trim()) return setError("Title is required.");
-    if (targetDates.length === 0) return setError("Add at least one target date.");
-    if (!dailyStartTime || !dailyEndTime) return setError("Set time window.");
-    if (!slotDuration || slotDuration <= 0) return setError("Invalid slot duration.");
-  
+
+    if (!title.trim()) {
+      setLoading(false);
+      return setError("Title is required.");
+    }
+    if (targetDates.length === 0) {
+      setLoading(false);
+      return setError("Add at least one target date.");
+    }
+    if (!dailyStartTime || !dailyEndTime) {
+      setLoading(false);
+      return setError("Set time window.");
+    }
+    if (!slotDuration || slotDuration <= 0) {
+      setLoading(false);
+      return setError("Invalid slot duration.");
+    }
+
     const voterId = localStorage.getItem("inmytime_voter_id");
     const voterName = localStorage.getItem("inmytime_voter_name") || "Owner";
-  
 
-  if (!voterId) {
-    setError("User identity not found in localStorage.");
-    setLoading(false);
-    return;
-  }
+    if (!voterId) {
+      setError("User identity not found in localStorage.");
+      setLoading(false);
+      return;
+    }
 
     const createPayload = {
       title,
       description,
-      ownerId:voterId,
+      ownerId: voterId,
       config: {
         targetDates,
         dailyStartTime,
@@ -180,37 +146,33 @@ export default function CreatePollPage() {
         slotDuration,
       },
     };
-  
+
     try {
       const res = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createPayload),
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok) {
+        setLoading(false);
         return setError(data.message || "Failed to create poll.");
       }
-  
+
       const pollId = data.pollId;
-      if (!pollId) return setError("Poll creation succeeded but poll ID missing.");
+      if (!pollId) {
+        setLoading(false);
+        return setError("Poll creation succeeded but poll ID missing.");
+      }
 
-      const selectedSlots: string[] = [];
-
-      targetDates.forEach(date => {
-        const start = new Date(`${date}T${dailyStartTime}`);
-        const end = new Date(`${date}T${dailyEndTime}`);
-      
-        for (
-          let current = new Date(start);
-          current < end;
-          current = new Date(current.getTime() + slotDuration * 60000)
-        ) {
-          selectedSlots.push(current.toISOString());
-        }
-      });
+      const selectedSlots = buildSelectedSlots(
+        targetDates,
+        dailyStartTime,
+        dailyEndTime,
+        slotDuration
+      );
 
       const votePayload = {
         tempVoterId: voterId,
@@ -218,21 +180,20 @@ export default function CreatePollPage() {
         selectedSlots,
       };
 
-  
       const voteRes = await fetch(`/api/polls/${pollId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(votePayload),
       });
-  
+
       const voteData = await voteRes.json();
-  
+
       if (!voteRes.ok) {
+        setLoading(false);
         return setError(voteData.message || "Failed to submit your vote.");
       }
 
       router.push(`/polls/${pollId}`);
-  
     } catch (err) {
       console.error(err);
       setError("Server error.");
@@ -240,7 +201,6 @@ export default function CreatePollPage() {
       setLoading(false);
     }
   };
-  
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-indigo-50 py-10 md:py-16">
@@ -451,7 +411,10 @@ export default function CreatePollPage() {
                   </div>
 
                   <div>
-                    <SlotPresetSelector value={slotDuration} onChange={setSlotDuration} />
+                    <SlotPresetSelector
+                      value={slotDuration}
+                      onChange={setSlotDuration}
+                    />
                   </div>
                 </div>
               </div>
@@ -480,16 +443,19 @@ export default function CreatePollPage() {
 
           <div className="w-full md:w-5/12 bg-slate-900 text-slate-50 px-6 py-7 md:px-7 md:py-10 flex flex-col justify-between">
             <div className="flex flex-col flex-1">
-
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-300">
                 Live Preview
               </p>
 
-              <h2 className="mt-2 text-lg font-semibold">Available Times Overview</h2>
+              <h2 className="mt-2 text-lg font-semibold">
+                Available Times Overview
+              </h2>
 
               <div className="mt-5 space-y-3 flex-1 overflow-y-auto">
                 {previewDates.length === 0 ? (
-                  <p className="text-xs text-slate-400">Add dates to see preview</p>
+                  <p className="text-xs text-slate-400">
+                    Add dates to see preview
+                  </p>
                 ) : (
                   previewDates.map((d, idx) => (
                     <div key={d} className="flex items-center justify-between gap-4">
@@ -538,10 +504,12 @@ export default function CreatePollPage() {
 
             <div className="mt-6 border-t border-slate-700 pt-4 text-xs text-slate-400 flex gap-3">
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" /> No signup needed
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />{" "}
+                No signup needed
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-pink-400" /> Instant availability view
+                <span className="inline-block h-2 w-2 rounded-full bg-pink-400" />{" "}
+                Instant availability view
               </span>
             </div>
           </div>
