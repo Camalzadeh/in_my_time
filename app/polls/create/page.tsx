@@ -43,6 +43,11 @@ export default function CreatePollPage() {
     setError(null);
     if (!singleDate) return;
 
+    if (targetDates.length >= 60) {
+      setError("You cannot select more than 60 days.");
+      return;
+    }    
+
     setTargetDates((prev) => {
       if (prev.includes(singleDate)) return prev;
       return [...prev, singleDate].sort();
@@ -59,6 +64,12 @@ export default function CreatePollPage() {
     }
 
     const dates = generateDateRange(rangeStart, rangeEnd);
+
+    if (targetDates.length + dates.length > 60) {
+      setError("You cannot select more than 60 days.");
+      return;
+    }
+
 
     if (dates.length === 0) {
       setError("Invalid date range.");
@@ -123,6 +134,13 @@ export default function CreatePollPage() {
       setLoading(false);
       return setError("Set time window.");
     }
+
+    if (slotDuration < 10 || slotDuration > 720) {
+      setLoading(false);
+      return setError("Slot duration must be between 10 and 720 minutes.");
+    }
+
+    
     if (!slotDuration || slotDuration <= 0) {
       setLoading(false);
       return setError("Invalid slot duration.");
