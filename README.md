@@ -13,6 +13,10 @@
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#usage">Usage</a> •
+  <a href="#api-routes">API Routes</a> •
+  <a href="#data-model">Data Model</a> •
+  <a href="#project-structure">Project Structure</a> •
+  <a href="#running-tests">Running Tests</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#license">License</a>
 </p>
@@ -21,46 +25,102 @@
 
 ## 🎯 About
 
-**InMyTime** is a modern, collaborative time polling application that makes scheduling meetings and events effortless. Simply create a poll with available time slots, share the link, and let participants vote on their availability. The app automatically highlights the best times that work for everyone.
+**InMyTime** is a collaborative scheduling and polling application built with **Next.js (App Router)** and **MongoDB**.  
+Users can create polls, propose multiple time slots, share links, and collect votes.  
+The system aggregates availability to highlight the best meeting times for everyone.
 
 ---
 
 ## ✨ Features
 
-- 📅 **Easy Poll Creation** — Define event titles and select multiple proposed dates/time slots
-- 🔓 **Anonymous Voting** — No login required for participants to submit their availability
-- 📊 **Smart Time Detection** — Automatically highlights the most popular and commonly available slots
-- 🔗 **Shareable Links** — Generate unique URLs for easy poll distribution
-- 📈 **Live Results** — Real-time voting visualization with animated progress bars
-- 🎨 **Modern UI** — Clean, responsive design with smooth animations
+- 📅 Create polls with multiple time slots  
+- 🔓 Anonymous voting (no login required)  
+- 📊 Aggregated availability calculation  
+- 🔗 Shareable poll links  
+- 📈 Live results visualization  
+- 🎨 Modern UI with Tailwind + Framer Motion  
+- 🧪 Unit & integration tests with Jest  
+- ⚡ CI/CD integration with GitHub Actions  
 
 ---
 
 ## 🛠️ Tech Stack
 
-<table>
-  <tr>
-    <td align="center"><strong>Framework</strong></td>
-    <td>Next.js</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Database</strong></td>
-    <td>MongoDB with Mongoose</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Frontend</strong></td>
-    <td>React</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Styling</strong></td>
-    <td>Tailwind CSS</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Animation</strong></td>
-    <td>Framer Motion</td>
-  </tr>
-</table>
+| Layer        | Technology |
+|--------------|------------|
+| Framework    | Next.js (App Router) |
+| Language     | TypeScript |
+| Database     | MongoDB + Mongoose |
+| Frontend     | React, Tailwind CSS |
+| Animations   | Framer Motion |
+| Testing      | Jest + @testing-library |
+| Utilities    | Custom hooks + shared helpers |
+| Linting      | ESLint, Prettier |
 
+---
+
+## 📡 API Routes
+
+- GET /api/polls — Returns all polls
+- POST /api/polls — Creates a new poll
+- GET /api/polls/:id — Returns poll details by ID
+- POST /api/polls/:id/vote — Adds a vote to a specific slot
+- GET /api/polls/:id/results — Returns vote counts + the most popular slot
+
+---
+
+## 🧩 Data Model
+
+```ts
+{
+  _id: ObjectId,
+  title: String,
+  slots: [
+    {
+      _id: ObjectId,
+      date: String,
+      votes: [String]
+    }
+  ],
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+---
+
+## 📂 Project Structure
+
+in_my_time/ 
+├── app/                # Next.js App Router pages & API routes 
+│ ├── api/              # Backend API endpoints (polls, votes, etc.) 
+│ └── components/       # Reusable UI components 
+├── lib/                # Utility functions (date ranges, slot generation, etc.) 
+├── tests/              # Unit & integration tests 
+│ ├── unit/             # Utility and component tests 
+│ └── integration/      # API and model tests 
+├── public/             # Static assets (images, icons) 
+├── package.json        # Dependencies and scripts 
+└── README.md           # Project documentation
+
+---
+
+## 🧪 Running Tests
+
+Run unit tests:
+```bash
+  npm test
+```
+
+Run in watch mode:
+```bash
+  npm run test:watch
+```
+
+Run linting:
+```bash
+  npm run lint
+```
 ---
 
 ## 🚀 Getting Started
@@ -74,27 +134,27 @@
 ### Installation
 
 1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd in_my_time
-   ```
+```bash
+  git clone <repository-url>
+  cd in_my_time
+```
 
 2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+  npm install
+```
 
 3. **Configure environment variables**
    
    Create a `.env.local` file in the root directory:
-   ```env
-   MONGODB_URI=your_mongodb_connection_string
-   ```
+```env
+  MONGODB_URI=your_mongodb_connection_string
+```
 
 4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
+```bash
+  npm run dev
+```
 
 5. **Open your browser**
    
