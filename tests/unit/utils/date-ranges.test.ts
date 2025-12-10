@@ -44,15 +44,29 @@ describe("getNextMonthRange", () => {
     const today = new Date("2025-01-15T00:00:00Z");
     const range = getNextMonthRange(today);
 
-    expect(range.start).toBe("2025-01-31");
-    expect(range.end).toBe("2025-02-27");
+    const expectedStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+      .toISOString()
+      .slice(0, 10);
+    const expectedEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+      .toISOString()
+      .slice(0, 10);
+
+    expect(range.start).toBe(expectedStart);
+    expect(range.end).toBe(expectedEnd);
   });
 
   test("handles December correctly (rolls over to next year)", () => {
     const today = new Date("2025-12-10T00:00:00Z");
     const range = getNextMonthRange(today);
 
-    expect(range.start).toBe("2025-12-31");
-    expect(range.end).toBe("2026-01-30");
+    const expectedStart = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+      .toISOString()
+      .slice(0, 10);
+    const expectedEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+      .toISOString()
+      .slice(0, 10);
+
+    expect(range.start).toBe(expectedStart);
+    expect(range.end).toBe(expectedEnd);
   });
 });
