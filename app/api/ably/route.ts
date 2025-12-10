@@ -17,7 +17,7 @@ export async function GET() {
 
         return NextResponse.json(tokenRequestData);
     } catch (error) {
-        console.error("Ably Token Yaratma Xətası:", error);
+        console.error("Failed to create Ably token", error);
         return NextResponse.json({ error: 'Failed to create Ably token' }, { status: 500 });
     }
 }

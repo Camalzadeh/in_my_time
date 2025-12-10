@@ -1,24 +1,25 @@
-export type TimeRange = {
-    start: Date;
-    end: Date;
-  };
-  
-  export function generateTimeSlots(
-    { start, end }: TimeRange,
-    stepMinutes: number
+export function generateTimeSlots(
+    range: { start: Date; end: Date },
+    durationMinutes: number
   ): Date[] {
+    const { start, end } = range;
+  
     const slots: Date[] = [];
     const current = new Date(start);
   
     while (current < end) {
       slots.push(new Date(current));
-      current.setMinutes(current.getMinutes() + stepMinutes);
+      current.setMinutes(current.getMinutes() + durationMinutes);
     }
   
     return slots;
   }
   
   export function formatTime(date: Date): string {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   }
   

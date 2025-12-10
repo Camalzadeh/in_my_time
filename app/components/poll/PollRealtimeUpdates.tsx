@@ -3,12 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { configureAbly } from '@ably-labs/react-hooks';
-import { Home, Loader2, Zap } from 'lucide-react'; // Added Loader2 and Zap
+import { Home, Loader2, Zap } from 'lucide-react';
 
 import type { IPoll } from '@/types/Poll';
 import { usePollManager } from "@/lib/hooks/use-poll-manager";
 
-// Components
 import NicknameModal from "@/app/components/poll/NicknameModal";
 import PollHeader from "@/app/components/poll/PollHeader";
 import DayNavigator from "@/app/components/poll/DayNavigator";
@@ -21,7 +20,7 @@ import FinalizePollModal from "@/app/components/poll/FinalizePollModal";
 
 import usePollRealtime from "@/lib/hooks/use-poll-realtime";
 import useVoterIdentity from "@/lib/hooks/use-voter-identity";
-import FinalizedPollView from "@/app/components/poll/FinalizedPollView"; // NEW IMPORT
+import FinalizedPollView from "@/app/components/poll/FinalizedPollView";
 
 interface PollRealtimeUpdatesProps {
     pollId: string;
@@ -31,7 +30,7 @@ interface PollRealtimeUpdatesProps {
 configureAbly({ authUrl: '/api/ably' });
 
 export default function PollRealtimeUpdates({ pollId, initialPollData }: PollRealtimeUpdatesProps) {
-    const { poll } = usePollRealtime(pollId, initialPollData); // Assuming usePollRealtime returns isLoading
+    const { poll } = usePollRealtime(pollId, initialPollData);
     const { voterId, voterName, isIdentityReady, setVoterName } = useVoterIdentity();
     const manager = usePollManager(poll, pollId, voterId, voterName);
 
@@ -42,8 +41,6 @@ export default function PollRealtimeUpdates({ pollId, initialPollData }: PollRea
     const handleNextDay = () => setCurrentDayIndex(prev => Math.min(manager.scheduleData.length - 1, prev + 1));
     const currentDayGroup = manager.scheduleData[currentDayIndex];
 
-    // --- 1. HANDLE LOADING STATE (Initial Load) ---
-    // We check if the poll is loading (initial fetch or Ably connection startup) OR if identity isn't ready.
     if (!isIdentityReady) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-gray-50">
@@ -60,7 +57,6 @@ export default function PollRealtimeUpdates({ pollId, initialPollData }: PollRea
         );
     }
 
-    // --- 2. HANDLE CLOSED/FINALIZED STATE ---
     if (poll.status !== 'open') {
         return (
             <main className="min-h-screen bg-gray-50/50 py-10 px-4">
@@ -91,7 +87,6 @@ export default function PollRealtimeUpdates({ pollId, initialPollData }: PollRea
         );
     }
 
-    // --- 3. HANDLE OPEN/ACTIVE STATE (Original Content) ---
     return (
         <main className="min-h-screen bg-gray-50/50 py-10 px-4 relative">
 
@@ -163,7 +158,6 @@ export default function PollRealtimeUpdates({ pollId, initialPollData }: PollRea
                             onFinalizePoll={manager.openFinalizeModal}
                         />
 
-                        {/* Leaderboard */}
                         <div className="pt-4">
                             <PollLeaderboard leaderboard={manager.leaderboard} maxVoteCount={manager.maxVoteCount} />
                         </div>

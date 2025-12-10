@@ -1,9 +1,8 @@
-// components/poll/FinalizedPollView.tsx
 
 import React from 'react';
 import { Trophy, Clock, CalendarCheck, Users, Info } from 'lucide-react';
 import type { IPoll } from '@/types/Poll';
-import PollParticipants from './PollParticipants'; // Reusing the participants list
+import PollParticipants from './PollParticipants';
 
 interface FinalizedPollViewProps {
     poll: IPoll;
@@ -21,7 +20,6 @@ export default function FinalizedPollView({ poll, isOwner, currentVoterId, onCle
     return (
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 sm:p-8 space-y-8">
 
-            {/* Final Time Winner Card */}
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl border-2 border-indigo-200 shadow-lg shadow-indigo-100">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-amber-500 rounded-full text-white shadow-xl shadow-amber-200">
@@ -47,7 +45,6 @@ export default function FinalizedPollView({ poll, isOwner, currentVoterId, onCle
                 </div>
             </div>
 
-            {/* General Information */}
             <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Info className="w-4 h-4 text-indigo-500" />
@@ -59,14 +56,13 @@ export default function FinalizedPollView({ poll, isOwner, currentVoterId, onCle
                 </div>
             </div>
 
-            {/* Participants List (Reusing existing component structure) */}
             <div className="pt-4 border-t border-gray-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Participant Details</h3>
                 <PollParticipants
                     votes={poll.votes}
                     currentVoterId={currentVoterId}
                     isOwner={isOwner}
-                    onClearVote={onClearVote} // Note: This action might be disabled by API if poll is closed
+                    onClearVote={onClearVote}
                 />
             </div>
         </div>

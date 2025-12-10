@@ -1,5 +1,3 @@
-// components/poll/TimeSlot.tsx
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,13 +22,12 @@ export default function TimeSlot({ slot, style, isSelected, onClick }: TimeSlotP
     const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
 
-    // Hover zamanı koordinatları hesablayırıq
     const handleMouseEnter = () => {
         if (buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
             setTooltipPos({
-                top: rect.top, // Düymənin təpə nöqtəsi
-                left: rect.left + rect.width / 2 // Düymənin mərkəzi
+                top: rect.top,
+                left: rect.left + rect.width / 2
             });
             setIsHovered(true);
         }
@@ -53,12 +50,10 @@ export default function TimeSlot({ slot, style, isSelected, onClick }: TimeSlotP
                     ${style}
                 `}
             >
-                {/* Time Display */}
                 <span className="text-sm sm:text-base font-bold tracking-tight z-10">
                     {slot.time}
                 </span>
 
-                {/* Vote Count Badge */}
                 {slot.count > 0 && (
                     <div className={`
                         mt-1.5 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold z-10
@@ -71,7 +66,6 @@ export default function TimeSlot({ slot, style, isSelected, onClick }: TimeSlotP
                     </div>
                 )}
 
-                {/* Selected Checkmark Animation */}
                 <AnimatePresence>
                     {isSelected && (
                         <motion.div
@@ -87,11 +81,7 @@ export default function TimeSlot({ slot, style, isSelected, onClick }: TimeSlotP
                 </AnimatePresence>
             </motion.button>
 
-            {/* PORTAL TOOLTIP:
-                Bu hissə birbaşa 'body' elementinə render olunur.
-                Buna görə də heç bir parent element (overflow:hidden olsa belə)
-                bunun üstünü örtə bilməz.
-            */}
+
             <PortalTooltip
                 isOpen={isHovered && slot.count > 0}
                 top={tooltipPos.top}
@@ -110,7 +100,6 @@ export default function TimeSlot({ slot, style, isSelected, onClick }: TimeSlotP
                             </div>
                         ))}
                     </div>
-                    {/* Arrow Pointer */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900/95"></div>
                 </div>
             </PortalTooltip>
@@ -118,7 +107,6 @@ export default function TimeSlot({ slot, style, isSelected, onClick }: TimeSlotP
     );
 }
 
-// --- Internal Helper Component for Portal ---
 const PortalTooltip = ({ isOpen, top, left, children }: { isOpen: boolean; top: number; left: number; children: React.ReactNode }) => {
     const [mounted, setMounted] = useState(false);
 
@@ -133,15 +121,15 @@ const PortalTooltip = ({ isOpen, top, left, children }: { isOpen: boolean; top: 
             {isOpen && (
                 <motion.div
                     initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                    animate={{ opacity: 1, y: -12, scale: 1 }} // Y: -12 düymənin bir az yuxarısına qaldırır
+                    animate={{ opacity: 1, y: -12, scale: 1 }}
                     exit={{ opacity: 0, y: 5, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     style={{
                         position: 'fixed',
                         top: top,
                         left: left,
-                        transform: 'translate(-50%, -100%)', // Mərkəzləşdirir və yuxarı çəkir
-                        zIndex: 9999, // Hər şeyin üstündə olması üçün
+                        transform: 'translate(-50%, -100%)',
+                        zIndex: 9999,
                         pointerEvents: 'none'
                     }}
                 >

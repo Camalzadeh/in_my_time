@@ -1,4 +1,3 @@
-// components/poll/PollLoadingState.tsx
 import React from 'react';
 import { Loader, Clock } from 'lucide-react';
 

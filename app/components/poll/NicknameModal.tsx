@@ -1,20 +1,18 @@
-// components/poll/NicknameModal.tsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserCircle2, Sparkles, ArrowRight, X } from 'lucide-react';
 
 interface NicknameModalProps {
-    isOpen: boolean;           // Modalın açıq olub-olmamasını idarə edir
-    onClose: () => void;       // Modalı bağlamaq üçün funksiya
+    isOpen: boolean;
+    onClose: () => void;
     onSave: (name: string) => void;
-    initialName?: string | null; // Mövcud adı redaktə etmək üçün
+    initialName?: string | null;
 }
 
 export default function NicknameModal({ isOpen, onClose, onSave, initialName }: NicknameModalProps) {
     const [inputName, setInputName] = useState('');
     const [isFocused, setIsFocused] = useState(false);
 
-    // Modal açılanda mövcud adı inputa yazırıq
     useEffect(() => {
         if (isOpen && initialName) {
             setInputName(initialName);
@@ -35,23 +33,20 @@ export default function NicknameModal({ isOpen, onClose, onSave, initialName }: 
     return (
         <AnimatePresence>
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                {/* Backdrop */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={initialName ? onClose : undefined} // Əgər adı varsa, kənara basanda bağlana bilsin
+                    onClick={initialName ? onClose : undefined}
                     className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
                 />
 
-                {/* Modal Content */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
                 >
-                    {/* Close Button (Yalnız redaktə rejimində) */}
                     {initialName && (
                         <button
                             onClick={onClose}
@@ -61,7 +56,6 @@ export default function NicknameModal({ isOpen, onClose, onSave, initialName }: 
                         </button>
                     )}
 
-                    {/* Decorative Background */}
                     <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 

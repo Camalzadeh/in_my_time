@@ -33,7 +33,6 @@ export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSl
     return (
         <AnimatePresence>
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                {/* Backdrop */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -42,14 +41,12 @@ export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSl
                     className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
                 />
 
-                {/* Modal Content */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
                 >
-                    {/* Header */}
                     <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
@@ -62,7 +59,6 @@ export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSl
                         </div>
                     </div>
 
-                    {/* Warning Banner */}
                     <div className="bg-amber-50 px-6 py-3 border-b border-amber-100 flex items-start gap-3">
                         <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                         <p className="text-xs text-amber-800 leading-relaxed font-medium">
@@ -70,7 +66,6 @@ export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSl
                         </p>
                     </div>
 
-                    {/* Slots List (Scrollable) */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
                         {rankedSlots.length === 0 ? (
                             <p className="text-center text-gray-500 py-4">No votes have been cast yet.</p>
@@ -90,7 +85,6 @@ export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSl
                                         `}
                                     >
                                         <div className="flex items-center gap-4 text-left">
-                                            {/* Rank Badge */}
                                             <div className={`
                                                 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
                                                 ${idx === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}
@@ -126,7 +120,6 @@ export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSl
                         )}
                     </div>
 
-                    {/* Footer Actions */}
                     <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
                         <button
                             onClick={onClose}

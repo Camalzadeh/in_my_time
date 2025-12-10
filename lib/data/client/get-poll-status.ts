@@ -1,7 +1,7 @@
 import { API_ROUTES } from "@/lib/routes";
 
 export async function getPollStatusClient(pollId: string): Promise<number> {
-    const path = API_ROUTES.POLL_DETAIL(pollId);
+    const path = API_ROUTES.POLL_DETAIL_API(pollId);
 
     try {
         const res = await fetch(path, {

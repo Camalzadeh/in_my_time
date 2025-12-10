@@ -1,4 +1,3 @@
-// hooks/use-poll-realtime.ts
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +11,6 @@ const usePollRealtime = (pollId: string, initialPollData: IPoll) => {
 
     const [channel] = useChannel(channelName, (message: Ably.Message) => {
         const newPollData = message.data as IPoll;
-        console.log("🔥 Canlı Yenilənmə:", newPollData);
         setPoll(newPollData);
     });
 

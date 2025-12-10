@@ -2,9 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Calendar, Search, X } from "lucide-react";
-import { UI_PATHS} from "@/lib/routes";
+import { UI_PATHS } from "@/lib/routes";
 import HeaderSearch from "@/app/components/search/HeaderSearch";
-
 
 export default function Header() {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -56,9 +55,8 @@ export default function Header() {
             </div>
 
             {isSearchOpen && (
-                <div className="fixed inset-0 top-0 z-[60] bg-background md:hidden p-4">
+                <div className="fixed inset-0 top-0 z-[60] bg-background lg:hidden p-4">
                     <div className="flex items-center justify-between h-16 max-w-7xl mx-auto">
-
                         <HeaderSearch />
 
                         <button
@@ -69,7 +67,7 @@ export default function Header() {
                         </button>
                     </div>
                     <div className="pt-4 text-sm text-foreground/70">
-                        Axtarış sahəsinə sorğunun ID-sini daxil edin və **Enter** düyməsinə basın.
+                        Enter the poll ID into the search field and press <strong>Enter</strong>.
                     </div>
                 </div>
             )}

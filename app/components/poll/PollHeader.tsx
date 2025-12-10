@@ -8,7 +8,7 @@ import {
     Crown,
     CalendarRange,
     Link as LinkIcon,
-    Pencil // Yeni ikon
+    Pencil
 } from 'lucide-react';
 import type { IPoll } from '@/types/Poll';
 
@@ -16,11 +16,11 @@ interface PollHeaderProps {
     poll: IPoll;
     isOwner: boolean;
     voterName: string | null;
-    onEditName: () => void; // Yeni prop: Adı dəyişmək üçün
+    onEditName: () => void;
 }
 
 export default function PollHeader({ poll, isOwner, voterName, onEditName }: PollHeaderProps) {
-    const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+    const [copyStatus, setCopyStatus] = useState('idle');
 
     const handleCopyLink = () => {
         const pollUrl = window.location.href;
@@ -44,9 +44,7 @@ export default function PollHeader({ poll, isOwner, voterName, onEditName }: Pol
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
             <div className="flex flex-col md:flex-row justify-between items-start gap-4">
 
-                {/* Left Side: Content */}
                 <div className="flex-1 min-w-0">
-                    {/* Status & Badges */}
                     <div className="flex items-center gap-3 mb-2">
                         <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>
                             <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-emerald-500' : 'bg-red-500'}`} />
@@ -86,7 +84,6 @@ export default function PollHeader({ poll, isOwner, voterName, onEditName }: Pol
                     </div>
                 </div>
 
-                {/* Right Side: Actions & Profile */}
                 <div className="flex items-center gap-3 shrink-0 w-full md:w-auto mt-2 md:mt-0">
                     <button
                         onClick={handleCopyLink}
@@ -103,7 +100,7 @@ export default function PollHeader({ poll, isOwner, voterName, onEditName }: Pol
                     </button>
 
                     {voterName && (
-                        <div className="hidden md:flex flex-col items-end border-l border-gray-100 pl-4 ml-1">
+                        <div className="flex flex-col items-end border-l border-gray-100 pl-4 ml-1">
                             <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Voting as</div>
                             <button
                                 onClick={onEditName}

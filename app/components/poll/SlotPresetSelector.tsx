@@ -16,19 +16,16 @@ const SLOT_PRESETS = [
 ];
 
 export function SlotPresetSelector({ value, onChange }: SlotPresetSelectorProps) {
-    // Seçilmiş dəyərin presetlərdən biri olub olmadığını yoxlayırıq
     const isCustom = !SLOT_PRESETS.some((p) => p.value === value);
 
     return (
         <div className="space-y-3">
-            {/* Label Section */}
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                 <Clock className="w-4 h-4 text-indigo-500" />
                 <span>Slot Duration</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-                {/* Preset Buttons */}
                 {SLOT_PRESETS.map((preset) => {
                     const isActive = value === preset.value;
                     return (
@@ -52,7 +49,6 @@ export function SlotPresetSelector({ value, onChange }: SlotPresetSelectorProps)
                     );
                 })}
 
-                {/* Custom Input Field */}
                 <div
                     className={`
                 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200

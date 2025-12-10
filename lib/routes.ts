@@ -6,8 +6,8 @@ export const UI_PATHS = {
 };
 
 export const API_ROUTES = {
-    POLLS: '/api/polls',
-    POLL_DETAIL: (id: string) => `/api/polls/${id}`,
-    VOTE_API: (id: string) => `/api/polls/${id}/vote`,
-    POLL_RESULTS: (id: string) => `/api/polls/${id}/results`,
+    POLLS_API: '/api/polls',
+    POLL_DETAIL_API: (id: string) => `/api/polls/${id}`,
+    VOTE_POLL_API: (id: string) => `/api/polls/${id}/vote`,
+    FINALIZE_POLL_API: (id: string) => `/api/polls/${id}/finalize`,
 };

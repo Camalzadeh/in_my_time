@@ -1,5 +1,3 @@
-// components/poll/PollFooter.tsx
-
 import React from 'react';
 import { MousePointerClick, Ban, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import type { IPoll } from '@/types/Poll';
@@ -10,11 +8,10 @@ interface PollFooterProps {
     mySelectedSlotsCount: number;
     onSendVotes: () => Promise<void>;
 
-    // Yeni proplar
-    isOwner: boolean;               // İstifadəçi sahibdirmi?
-    hasVoterName: boolean;          // İstifadəçinin adı varmı?
-    hasUnsavedChanges: boolean;     // Yadda saxlanmamış dəyişiklik varmı?
-    onFinalizePoll?: () => void;    // Pollu bitirmək funksiyası
+    isOwner: boolean;
+    hasVoterName: boolean;
+    hasUnsavedChanges: boolean;
+    onFinalizePoll?: () => void;
 }
 
 export default function PollFooter({
@@ -29,14 +26,10 @@ export default function PollFooter({
                                    }: PollFooterProps) {
     const isPollOpen = pollStatus === 'open';
 
-    // Düymə Mətni və Status Məntiqi
     let buttonText = 'Select Time';
     let buttonIcon = <MousePointerClick className="w-5 h-5" />;
 
-    // Düymənin aktiv/deaktiv olma məntiqi
-    // 1. Poll açıq olmalıdır
-    // 2. İstifadəçinin adı olmalıdır
-    // 3. Dəyişiklik olmalıdır (Və ya seçimləri sıfırlayıbsa da dəyişiklik sayılır)
+
     const isSubmitDisabled = !isPollOpen || !hasVoterName || !hasUnsavedChanges;
 
     if (!isPollOpen) {
@@ -47,27 +40,22 @@ export default function PollFooter({
     } else if (mySelectedSlotsCount > 0) {
         buttonText = `Confirm ${mySelectedSlotsCount} Times`;
     } else if (hasUnsavedChanges && mySelectedSlotsCount === 0) {
-        // Əgər istifadəçi hər şeyi silibsə və yadda saxlamaq istəyirsə
         buttonText = 'Confirm Removal';
         buttonIcon = <Trash2 className="w-5 h-5" />;
     }
 
-    // Status UI Məntiqi
     const statusConfig = isPollOpen
         ? { text: 'Voting Active', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100' }
         : { text: 'Voting Closed', color: 'text-gray-500', bg: 'bg-gray-100 border-gray-200' };
 
     return (
         <div className="mt-6">
-            {/* Main Footer Card */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100 relative overflow-hidden">
 
-                {/* Background Decoration */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
 
-                    {/* Left Side: Stats & Status */}
                     <div className="flex items-center gap-8 w-full lg:w-auto justify-center lg:justify-start">
                         <div className="text-center lg:text-left">
                             <div className="text-3xl font-extrabold text-gray-900 leading-none mb-1">{voteCount}</div>
@@ -85,10 +73,8 @@ export default function PollFooter({
                         </div>
                     </div>
 
-                    {/* Right Side: Actions */}
                     <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
 
-                        {/* OWNER ACTION: Finalize Poll */}
                         {isOwner && isPollOpen && (
                             <button
                                 onClick={onFinalizePoll}
@@ -99,7 +85,6 @@ export default function PollFooter({
                             </button>
                         )}
 
-                        {/* VOTER ACTION: Submit Vote */}
                         <button
                             onClick={onSendVotes}
                             disabled={isSubmitDisabled}
@@ -119,7 +104,6 @@ export default function PollFooter({
                 </div>
             </div>
 
-            {/* Hint Message */}
             {!hasVoterName && isPollOpen && (
                 <div className="mt-3 text-center animate-in fade-in slide-in-from-top-2">
                     <p className="text-sm text-gray-500 flex items-center justify-center gap-1.5">
@@ -132,4 +116,4 @@ export default function PollFooter({
     );
 }
 
-import { Trash2 } from 'lucide-react'; // Trash2 iconunu import etməyi unutmayın
+import { Trash2 } from 'lucide-react';

@@ -149,7 +149,7 @@ export default function CreatePollPage() {
     };
 
     try {
-      const res = await fetch("/api/polls", {
+      const res = await fetch(API_ROUTES.POLLS_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createPayload),
