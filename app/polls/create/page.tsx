@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState, useEffect } from "react";
 import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
-import { generateTimeSlots, formatTime } from "@/lib/time-slots";
+import { generateTimeSlots, formatTime } from "@/lib/utils/time-slots";
 import { generateDateRange, getNextWeekRange, getNextMonthRange } from "@/lib/utils/date-ranges";
 import { buildSelectedSlots } from "@/lib/utils/poll-slots";
 import { useRouter } from "next/navigation";
