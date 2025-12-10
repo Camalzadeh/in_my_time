@@ -133,7 +133,7 @@ export default function CreatePollPage() {
     if (!dailyStartTime || !dailyEndTime) {
       setLoading(false);
       return setError("Set time window.");
-    }
+  }
 
     if (slotDuration < 10 || slotDuration > 720) {
       setLoading(false);
