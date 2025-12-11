@@ -9,6 +9,7 @@ import { buildSelectedSlots } from "@/lib/utils/poll-slots";
 import {API_ROUTES} from "@/lib/routes";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
+import Link  from "next/link"; 
 
 export default function CreatePollPage() {
   const router = useRouter();
@@ -43,6 +44,11 @@ export default function CreatePollPage() {
     setError(null);
     if (!singleDate) return;
 
+    if (targetDates.length >= 60) {
+      setError("You cannot select more than 60 days.");
+      return;
+    }    
+
     setTargetDates((prev) => {
       if (prev.includes(singleDate)) return prev;
       return [...prev, singleDate].sort();
@@ -59,6 +65,12 @@ export default function CreatePollPage() {
     }
 
     const dates = generateDateRange(rangeStart, rangeEnd);
+
+    if (targetDates.length + dates.length > 60) {
+      setError("You cannot select more than 60 days.");
+      return;
+    }
+
 
     if (dates.length === 0) {
       setError("Invalid date range.");
@@ -122,7 +134,14 @@ export default function CreatePollPage() {
     if (!dailyStartTime || !dailyEndTime) {
       setLoading(false);
       return setError("Set time window.");
+  }
+
+    if (slotDuration < 10 || slotDuration > 720) {
+      setLoading(false);
+      return setError("Slot duration must be between 10 and 720 minutes.");
     }
+
+    
     if (!slotDuration || slotDuration <= 0) {
       setLoading(false);
       return setError("Invalid slot duration.");
@@ -207,6 +226,15 @@ export default function CreatePollPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-indigo-50 py-10 md:py-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <Link
+      href="/"
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition font-medium"
+    >
+      ← Return Home
+    </Link>
+
+
         <div className="mb-8 text-center md:text-left">
           <p className="text-sm uppercase tracking-[0.2em] text-indigo-500 font-semibold">
             Create Poll
