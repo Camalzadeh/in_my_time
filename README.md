@@ -11,85 +11,71 @@
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#tech-stack">Tech Stack</a> •
-  <a href="#getting-started">Getting Started</a> •
   <a href="#usage">Usage</a> •
   <a href="#api-routes">API Routes</a> •
-  <a href="#data-model">Data Model</a> •
   <a href="#project-structure">Project Structure</a> •
-  <a href="#running-tests">Running Tests</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#license">License</a>
 </p>
 
 ---
 
-## 🎯 About
+## About
 
 **InMyTime** is a collaborative scheduling and polling application built with **Next.js (App Router)** and **MongoDB**.  
 Users can create polls, propose multiple time slots, share links, and collect votes.  
-The system aggregates availability to highlight the best meeting times for everyone.
+The system aggregates availability to highlight the best meeting times for everyone.  
+Realtime updates are powered by **Ably**.
 
 ---
 
-## ✨ Features
+## Features
 
-- 📅 Create polls with multiple time slots  
-- 🔓 Anonymous voting (no login required)  
-- 📊 Aggregated availability calculation  
-- 🔗 Shareable poll links  
-- 📈 Live results visualization  
-- 🎨 Modern UI with Tailwind + Framer Motion  
-- 🧪 Unit & integration tests with Jest  
-- ⚡ CI/CD integration with GitHub Actions  
+- Create polls with multiple time slots  
+- Anonymous voting (no login required)  
+- Aggregated availability calculation  
+- Shareable poll links  
+- Live results visualization with realtime updates (Ably)  
+- Modern UI with Tailwind + Framer Motion  
+- CI/CD integration with GitHub Actions  
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer        | Technology |
 |--------------|------------|
-| Framework    | Next.js (App Router) |
-| Language     | TypeScript |
-| Database     | MongoDB + Mongoose |
-| Frontend     | React, Tailwind CSS |
+| Framework    | ![Next.js](https://skillicons.dev/icons?i=nextjs) Next.js (App Router) |
+| Language     | ![TypeScript](https://skillicons.dev/icons?i=typescript) TypeScript |
+| Database     | ![MongoDB](https://skillicons.dev/icons?i=mongodb) MongoDB + Mongoose |
+| Frontend     | ![React](https://skillicons.dev/icons?i=react) React |
+| Styling      | ![Tailwind](https://skillicons.dev/icons?i=tailwind) Tailwind CSS |
 | Animations   | Framer Motion |
+| Realtime     | Ably |
 | Testing      | Jest + @testing-library |
-| Utilities    | Custom hooks + shared helpers |
-| Linting      | ESLint, Prettier |
+| Linting      | ESLint |
 
 ---
 
-## 📡 API Routes
+## Usage
 
-- GET /api/polls — Returns all polls
-- POST /api/polls — Creates a new poll
-- GET /api/polls/:id — Returns poll details by ID
-- POST /api/polls/:id/vote — Adds a vote to a specific slot
-- GET /api/polls/:id/results — Returns vote counts + the most popular slot
-
----
-
-## 🧩 Data Model
-
-```ts
-{
-  _id: ObjectId,
-  title: String,
-  slots: [
-    {
-      _id: ObjectId,
-      date: String,
-      votes: [String]
-    }
-  ],
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+1. Create a poll with a title and time slots  
+2. Share the unique poll link with participants  
+3. Collect votes anonymously  
+4. Finalize the poll to confirm the chosen time  
 
 ---
 
-## 📂 Project Structure
+## API Routes
+
+- **POST /api/polls** — Create a new poll  
+- **GET /api/polls/:id** — Get poll details by ID  
+- **POST /api/polls/:id/vote** — Add a vote to a specific slot  
+- **POST /api/polls/:id/finalize** — Finalize a poll  
+
+---
+
+## Project Structure
 
 in_my_time/ 
 ├── app/                # Next.js App Router pages & API routes 
@@ -102,72 +88,6 @@ in_my_time/
 ├── public/             # Static assets (images, icons) 
 ├── package.json        # Dependencies and scripts 
 └── README.md           # Project documentation
-
----
-
-## 🧪 Running Tests
-
-Run unit tests:
-```bash
-  npm test
-```
-
-Run in watch mode:
-```bash
-  npm run test:watch
-```
-
-Run linting:
-```bash
-  npm run lint
-```
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Node.js** v18+
-- **npm** v9+
-- **MongoDB** (local instance or MongoDB Atlas)
-
-### Installation
-
-1. **Clone the repository**
-```bash
-  git clone <repository-url>
-  cd in_my_time
-```
-
-2. **Install dependencies**
-```bash
-  npm install
-```
-
-3. **Configure environment variables**
-   
-   Create a `.env.local` file in the root directory:
-```env
-  MONGODB_URI=your_mongodb_connection_string
-```
-
-4. **Start the development server**
-```bash
-  npm run dev
-```
-
-5. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
----
-
-## 📖 Usage
-
-1. **Create a Poll** — Set up your event with a title and available time slots
-2. **Share the Link** — Send the unique poll URL to participants
-3. **Collect Votes** — Participants select their available times
-4. **View Results** — See which times work best for everyone
 
 ---
 
