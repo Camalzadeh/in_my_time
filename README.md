@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/logo.png" alt="InMyTime Logo" width="150" />
+  <img src="https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/logo.png" alt="InMyTime Logo" width="150" />
 </p>
 <p align="center">
-  <img src="docs/branding.png" alt="InMyTime Logo" width="150" />
+  <img src="https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/branding.png" alt="InMyTime Logo" width="150" />
 </p>
 
 <p align="center">
@@ -10,6 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="#about">About</a> •
+  <a href="#documentation">Documentation</a> •
   <a href="#features">Features</a> •
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#usage">Usage</a> •
@@ -30,11 +32,11 @@ Realtime updates are powered by **Ably**.
 
 ---
 
-## 📄 Documentation
+## Documentation
 
 The project's detailed presentation, roadmap, and core concepts are available in the dedicated documentation file.
 
-* **Project Presentation:** View the full presentation in PDF format [here](docs/presentation.pdf).
+* **Project Presentation:** View the full presentation in PDF format [here](https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/presentation.pdf).
 
 ---
 
@@ -102,7 +104,7 @@ in_my_time/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Feel free to:
 
@@ -112,7 +114,7 @@ Contributions are welcome! Feel free to:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
