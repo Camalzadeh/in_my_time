@@ -45,15 +45,15 @@ Realtime updates are powered by **Ably**.
 
 | Layer        | Technology |
 |--------------|------------|
-| Framework    | ![Next.js](https://skillicons.dev/icons?i=nextjs) Next.js (App Router) |
-| Language     | ![TypeScript](https://skillicons.dev/icons?i=typescript) TypeScript |
-| Database     | ![MongoDB](https://skillicons.dev/icons?i=mongodb) MongoDB + Mongoose |
-| Frontend     | ![React](https://skillicons.dev/icons?i=react) React |
-| Styling      | ![Tailwind](https://skillicons.dev/icons?i=tailwind) Tailwind CSS |
-| Animations   | Framer Motion |
-| Realtime     | Ably |
-| Testing      | Jest + @testing-library |
-| Linting      | ESLint |
+| Framework    | ![Next.js](https://img.shields.io/badge/Next.js-%23000000.svg?style=for-the-badge&logo=next.js&logoColor=white) Next.js (App Router) |
+| Language     | ![TypeScript](https://img.shields.io/badge/TypeScript-%233178C6.svg?style=for-the-badge&logo=typescript&logoColor=white) TypeScript |
+| Database     | ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white) MongoDB + Mongoose |
+| Frontend     | ![React](https://img.shields.io/badge/React-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) React |
+| Styling      | ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white) Tailwind CSS |
+| Animations   | ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-0055FF.svg?style=for-the-badge&logo=framer&logoColor=white) Framer Motion |
+| Realtime     | ![Ably](https://img.shields.io/badge/Ably-EA5C5C.svg?style=for-the-badge&logo=ably&logoColor=white) Ably |
+| Testing      | ![Jest](https://img.shields.io/badge/Jest-C21325.svg?style=for-the-badge&logo=jest&logoColor=white) + @testing-library |
+| Linting      | ![ESLint](https://img.shields.io/badge/ESLint-4B32C3.svg?style=for-the-badge&logo=eslint&logoColor=white) ESLint |
 
 ---
 
@@ -77,6 +77,7 @@ Realtime updates are powered by **Ably**.
 
 ## Project Structure
 
+```
 in_my_time/ 
 ├── app/                # Next.js App Router pages & API routes 
 │ ├── api/              # Backend API endpoints (polls, votes, etc.) 
@@ -88,6 +89,7 @@ in_my_time/
 ├── public/             # Static assets (images, icons) 
 ├── package.json        # Dependencies and scripts 
 └── README.md           # Project documentation
+```
 
 ---
 
