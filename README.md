@@ -1,8 +1,9 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f964b2ef-7ca7-4797-bf36-56684bf872ef" alt="InMyTime Logo" width="150" />
+  <img src="docs/logo.png" alt="InMyTime Logo" width="150" />
 </p>
-
-<h1 align="center">InMyTime</h1>
+<p align="center">
+  <img src="docs/branding.png" alt="InMyTime Logo" width="150" />
+</p>
 
 <p align="center">
   <strong>Find the perfect time for everyone</strong>
@@ -26,6 +27,14 @@
 Users can create polls, propose multiple time slots, share links, and collect votes.  
 The system aggregates availability to highlight the best meeting times for everyone.  
 Realtime updates are powered by **Ably**.
+
+---
+
+## 📄 Documentation
+
+The project's detailed presentation, roadmap, and core concepts are available in the dedicated documentation file.
+
+* **Project Presentation:** View the full presentation in PDF format [here](docs/presentation.pdf).
 
 ---
 
@@ -103,13 +112,12 @@ Contributions are welcome! Feel free to:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
----
-
 ## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+
 
 <p align="center">
   Made with ❤️ for better scheduling
