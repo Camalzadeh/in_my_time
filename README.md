@@ -1,117 +1,110 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f964b2ef-7ca7-4797-bf36-56684bf872ef" alt="InMyTime Logo" width="150" />
+  <img src="https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/logo.png" alt="InMyTime Logo" width="150" />
 </p>
-
-<h1 align="center">InMyTime</h1>
+<p align="center">
+  <img src="https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/branding.png" alt="InMyTime Logo" width="150" />
+</p>
 
 <p align="center">
   <strong>Find the perfect time for everyone</strong>
 </p>
 
 <p align="center">
+  <a href="#about">About</a> •
+  <a href="#documentation">Documentation</a> •
   <a href="#features">Features</a> •
   <a href="#tech-stack">Tech Stack</a> •
-  <a href="#getting-started">Getting Started</a> •
   <a href="#usage">Usage</a> •
+  <a href="#api-routes">API Routes</a> •
+  <a href="#project-structure">Project Structure</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#license">License</a>
 </p>
 
 ---
 
-## 🎯 About
+## About
 
-**InMyTime** is a modern, collaborative time polling application that makes scheduling meetings and events effortless. Simply create a poll with available time slots, share the link, and let participants vote on their availability. The app automatically highlights the best times that work for everyone.
-
----
-
-## ✨ Features
-
-- 📅 **Easy Poll Creation** — Define event titles and select multiple proposed dates/time slots
-- 🔓 **Anonymous Voting** — No login required for participants to submit their availability
-- 📊 **Smart Time Detection** — Automatically highlights the most popular and commonly available slots
-- 🔗 **Shareable Links** — Generate unique URLs for easy poll distribution
-- 📈 **Live Results** — Real-time voting visualization with animated progress bars
-- 🎨 **Modern UI** — Clean, responsive design with smooth animations
+**InMyTime** is a collaborative scheduling and polling application built with **Next.js (App Router)** and **MongoDB**.  
+Users can create polls, propose multiple time slots, share links, and collect votes.  
+The system aggregates availability to highlight the best meeting times for everyone.  
+Realtime updates are powered by **Ably**.
 
 ---
 
-## 🛠️ Tech Stack
+## Documentation
 
-<table>
-  <tr>
-    <td align="center"><strong>Framework</strong></td>
-    <td>Next.js</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Database</strong></td>
-    <td>MongoDB with Mongoose</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Frontend</strong></td>
-    <td>React</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Styling</strong></td>
-    <td>Tailwind CSS</td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Animation</strong></td>
-    <td>Framer Motion</td>
-  </tr>
-</table>
+The project's detailed presentation, roadmap, and core concepts are available in the dedicated documentation file.
+
+* **Project Presentation:** View the full presentation in PDF format [here](https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/presentation.pdf).
 
 ---
 
-## 🚀 Getting Started
+## Features
 
-### Prerequisites
-
-- **Node.js** v18+
-- **npm** v9+
-- **MongoDB** (local instance or MongoDB Atlas)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd in_my_time
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables**
-   
-   Create a `.env.local` file in the root directory:
-   ```env
-   MONGODB_URI=your_mongodb_connection_string
-   ```
-
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
+- Create polls with multiple time slots  
+- Anonymous voting (no login required)  
+- Aggregated availability calculation  
+- Shareable poll links  
+- Live results visualization with realtime updates (Ably)  
+- Modern UI with Tailwind + Framer Motion  
+- CI/CD integration with GitHub Actions  
 
 ---
 
-## 📖 Usage
+## Tech Stack
 
-1. **Create a Poll** — Set up your event with a title and available time slots
-2. **Share the Link** — Send the unique poll URL to participants
-3. **Collect Votes** — Participants select their available times
-4. **View Results** — See which times work best for everyone
+| Layer        | Technology |
+|--------------|------------|
+| Framework    | ![Next.js](https://img.shields.io/badge/Next.js-%23000000.svg?style=for-the-badge&logo=next.js&logoColor=white) Next.js (App Router) |
+| Language     | ![TypeScript](https://img.shields.io/badge/TypeScript-%233178C6.svg?style=for-the-badge&logo=typescript&logoColor=white) TypeScript |
+| Database     | ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white) MongoDB + Mongoose |
+| Frontend     | ![React](https://img.shields.io/badge/React-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) React |
+| Styling      | ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white) Tailwind CSS |
+| Animations   | ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-0055FF.svg?style=for-the-badge&logo=framer&logoColor=white) Framer Motion |
+| Realtime     | ![Ably](https://img.shields.io/badge/Ably-EA5C5C.svg?style=for-the-badge&logo=ably&logoColor=white) Ably |
+| Testing      | ![Jest](https://img.shields.io/badge/Jest-C21325.svg?style=for-the-badge&logo=jest&logoColor=white) + @testing-library |
+| Linting      | ![ESLint](https://img.shields.io/badge/ESLint-4B32C3.svg?style=for-the-badge&logo=eslint&logoColor=white) ESLint |
 
 ---
 
-## 🤝 Contributing
+## Usage
+
+1. Create a poll with a title and time slots  
+2. Share the unique poll link with participants  
+3. Collect votes anonymously  
+4. Finalize the poll to confirm the chosen time  
+
+---
+
+## API Routes
+
+- **POST /api/polls** — Create a new poll  
+- **GET /api/polls/:id** — Get poll details by ID  
+- **POST /api/polls/:id/vote** — Add a vote to a specific slot  
+- **POST /api/polls/:id/finalize** — Finalize a poll  
+
+---
+
+## Project Structure
+
+```
+in_my_time/ 
+├── app/                # Next.js App Router pages & API routes 
+│ ├── api/              # Backend API endpoints (polls, votes, etc.) 
+│ └── components/       # Reusable UI components 
+├── lib/                # Utility functions (date ranges, slot generation, etc.) 
+├── tests/              # Unit & integration tests 
+│ ├── unit/             # Utility and component tests 
+│ └── integration/      # API and model tests 
+├── public/             # Static assets (images, icons) 
+├── package.json        # Dependencies and scripts 
+└── README.md           # Project documentation
+```
+
+---
+
+## Contributing
 
 Contributions are welcome! Feel free to:
 
@@ -121,13 +114,12 @@ Contributions are welcome! Feel free to:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
----
-
-## 📄 License
+## License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+
 
 <p align="center">
   Made with ❤️ for better scheduling

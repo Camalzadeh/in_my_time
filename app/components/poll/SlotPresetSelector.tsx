@@ -62,7 +62,8 @@ export function SlotPresetSelector({ value, onChange }: SlotPresetSelectorProps)
                     <div className="flex items-center gap-1">
                         <input
                             type="number"
-                            min={5}
+                            min={10}
+                            max={720}
                             step={5}
                             className="w-10 bg-transparent text-xs font-bold text-gray-800 outline-none placeholder-gray-400 text-center"
                             value={value}

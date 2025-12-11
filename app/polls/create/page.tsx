@@ -1,12 +1,38 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { Calendar, PlusCircle, SlidersHorizontal } from "lucide-react";
+import { FormEvent, useMemo, useState, useEffect } from "react";
+import {
+  Calendar,
+  PlusCircle,
+  SlidersHorizontal,
+  Home,
+  Trash2,
+  Copy,
+  Check,
+  ExternalLink,
+  ArrowLeft
+} from "lucide-react";
 import { SlotPresetSelector } from "@/app/components/poll/SlotPresetSelector";
 import { generateTimeSlots, formatTime } from "@/lib/utils/time-slots";
-import {API_ROUTES} from "@/lib/routes";
+import { generateDateRange, getNextWeekRange, getNextMonthRange } from "@/lib/utils/date-ranges";
+import { API_ROUTES } from "@/lib/routes";
+import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
+import Link from "next/link";
+import ReactConfetti from "react-confetti";
 
 export default function CreatePollPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let voterId = localStorage.getItem("inmytime_voter_id");
+    if (!voterId) {
+      voterId = uuidv4();
+      localStorage.setItem("inmytime_voter_id", voterId);
+    }
+  }, []);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -21,11 +47,31 @@ export default function CreatePollPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [newPollId, setNewPollId] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const handleCopyLink = async () => {
+    if (!newPollId) return;
+    const url = `${window.location.origin}/polls/${newPollId}`;
+    await navigator.clipboard.writeText(url);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 1500);
+  };
+
+  const handleClearAllDates = () => {
+    setTargetDates([]);
+  };
 
   const handleAddSingleDate = () => {
     setError(null);
     if (!singleDate) return;
+
+    if (targetDates.length >= 60) {
+      setError("You cannot select more than 60 days.");
+      return;
+    }
 
     setTargetDates((prev) => {
       if (prev.includes(singleDate)) return prev;
@@ -33,53 +79,6 @@ export default function CreatePollPage() {
     });
 
     setSingleDate("");
-  };
-
-  const generateDateRange = (start: string, end: string): string[] => {
-    const result: string[] = [];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return result;
-    if (startDate > endDate) return result;
-
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      const iso = current.toISOString().slice(0, 10);
-      result.push(iso);
-      current.setDate(current.getDate() + 1);
-    }
-    return result;
-  };
-
-  const formatISO = (date: Date) => date.toISOString().slice(0, 10);
-
-  const getNextWeekRange = () => {
-    const today = new Date();
-    const day = today.getDay();
-    const diffToMonday = (1 - day + 7) % 7;
-
-    const nextMonday = new Date(today);
-    nextMonday.setDate(today.getDate() + diffToMonday);
-
-    const nextSunday = new Date(nextMonday);
-    nextSunday.setDate(nextMonday.getDate() + 6);
-
-    return {
-      start: formatISO(nextMonday),
-      end: formatISO(nextSunday),
-    };
-  };
-
-  const getNextMonthRange = () => {
-    const today = new Date();
-    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-    const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-
-    return {
-      start: formatISO(nextMonthStart),
-      end: formatISO(nextMonthEnd),
-    };
   };
 
   const handleAddRange = () => {
@@ -90,6 +89,11 @@ export default function CreatePollPage() {
     }
 
     const dates = generateDateRange(rangeStart, rangeEnd);
+
+    if (targetDates.length + dates.length > 60) {
+      setError("You cannot select more than 60 days.");
+      return;
+    }
 
     if (dates.length === 0) {
       setError("Invalid date range.");
@@ -110,17 +114,17 @@ export default function CreatePollPage() {
   const MAX_PREVIEW_DATES = 16;
 
   const previewDates = useMemo(
-    () => targetDates.slice(0, MAX_PREVIEW_DATES),
-    [targetDates]
+      () => targetDates.slice(0, MAX_PREVIEW_DATES),
+      [targetDates]
   );
 
   const sampleSlots = useMemo(() => {
     if (
-      targetDates.length === 0 ||
-      !dailyStartTime ||
-      !dailyEndTime ||
-      !slotDuration ||
-      slotDuration <= 0
+        targetDates.length === 0 ||
+        !dailyStartTime ||
+        !dailyEndTime ||
+        !slotDuration ||
+        slotDuration <= 0
     ) {
       return [];
     }
@@ -139,17 +143,43 @@ export default function CreatePollPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    setSuccessMessage(null);
+    setLoading(true);
 
-    if (!title.trim()) return setError("Title is required.");
-    if (targetDates.length === 0) return setError("Add at least one target date.");
-    if (!dailyStartTime || !dailyEndTime) return setError("Set time window.");
-    if (!slotDuration || slotDuration <= 0) return setError("Invalid slot duration.");
+    if (!title.trim()) {
+      setLoading(false);
+      return setError("Title is required.");
+    }
+    if (targetDates.length === 0) {
+      setLoading(false);
+      return setError("Add at least one target date.");
+    }
+    if (!dailyStartTime || !dailyEndTime) {
+      setLoading(false);
+      return setError("Set time window.");
+    }
 
-    const payload = {
+    if (slotDuration < 10 || slotDuration > 720) {
+      setLoading(false);
+      return setError("Slot duration must be between 10 and 720 minutes.");
+    }
+
+    if (!slotDuration || slotDuration <= 0) {
+      setLoading(false);
+      return setError("Invalid slot duration.");
+    }
+
+    const voterId = localStorage.getItem("inmytime_voter_id");
+
+    if (!voterId) {
+      setError("User identity not found in localStorage.");
+      setLoading(false);
+      return;
+    }
+
+    const createPayload = {
       title,
       description,
-      ownerId: "demo-owner-id",
+      ownerId: voterId,
       config: {
         targetDates,
         dailyStartTime,
@@ -158,32 +188,31 @@ export default function CreatePollPage() {
       },
     };
 
-    setLoading(true);
-
     try {
       const res = await fetch(API_ROUTES.POLLS_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(createPayload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Failed to create poll.");
-      } else {
-        setTitle("");
-        setDescription("");
-        setSingleDate("");
-        setRangeStart("");
-        setRangeEnd("");
-        setTargetDates([]);
-        setDailyStartTime("09:00");
-        setDailyEndTime("17:00");
-        setSlotDuration(60);
-
-        setSuccessMessage("✅ Poll created successfully!");
+        setLoading(false);
+        return setError(data.message || "Failed to create poll.");
       }
+
+      const pollId = data.pollId;
+      if (!pollId) {
+        setLoading(false);
+        return setError("Poll creation succeeded but poll ID missing.");
+      }
+
+      setNewPollId(pollId);
+      setShowSuccess(true);
+      setLoading(false);
+      return;
+
     } catch (err) {
       console.error(err);
       setError("Server error.");
@@ -193,310 +222,353 @@ export default function CreatePollPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-indigo-50 py-10 md:py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 text-center md:text-left">
-          <p className="text-sm uppercase tracking-[0.2em] text-indigo-500 font-semibold">
-            Create Poll
-          </p>
-          <h1 className="mt-2 text-3xl md:text-4xl font-bold text-slate-900">
-            Find the{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-              perfect time
-            </span>{" "}
-            for your team
-          </h1>
-        </div>
+      <>
+        <main className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-indigo-50 py-10 md:py-16">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 flex flex-col md:flex-row items-stretch">
-          <div className="w-full md:w-7/12 p-6 sm:p-8 lg:p-10">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
-                  <Calendar className="w-4 h-4 text-indigo-500" />
-                  Event title <span className="text-pink-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Product sync, sprint review, study session…"
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500"
-                />
+            <Link
+                href="/"
+                className="group inline-flex items-center gap-2 mb-6 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+            >
+              <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 group-hover:border-indigo-200 group-hover:shadow-md transition-all">
+                <Home className="w-4 h-4" />
               </div>
+              <span>Back to Home</span>
+            </Link>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-800 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Add an optional note…"
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+            <div className="mb-8 text-center md:text-left">
+              <p className="text-sm uppercase tracking-[0.2em] text-indigo-500 font-semibold">Create Poll</p>
+              <h1 className="mt-2 text-3xl md:text-4xl font-bold text-slate-900">
+                Find the{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                perfect time
+              </span>{" "}
+                for your team
+              </h1>
+            </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-slate-800">
-                    Target dates <span className="text-pink-500">*</span>
-                  </h2>
-                  <span className="text-xs text-slate-500">
-                    {targetDates.length} selected
-                  </span>
-                </div>
+            <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-100 flex flex-col md:flex-row items-stretch">
+              <div className="w-full md:w-7/12 p-6 sm:p-8 lg:p-10">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
+                      <Calendar className="w-4 h-4 text-indigo-500" />
+                      Event title <span className="text-pink-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Product sync, sprint review, study session…"
+                        className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                    <p className="text-xs font-semibold mb-2 text-slate-700 uppercase tracking-wide">
-                      Single day
-                    </p>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-800 mb-2">Description</label>
+                    <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={3}
+                        placeholder="Add an optional note…"
+                        className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
 
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={singleDate}
-                        onChange={(e) => setSingleDate(e.target.value)}
-                        className="flex-1 rounded-xl border px-3 py-2 text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddSingleDate}
-                        disabled={!singleDate}
-                        className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
-                      >
-                        <PlusCircle className="w-3 h-3" />
-                        Add
-                      </button>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Target dates <span className="text-pink-500">*</span>
+                      </h2>
+
+                      {targetDates.length > 0 && (
+                          <button
+                              type="button"
+                              onClick={handleClearAllDates}
+                              className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Clear all
+                          </button>
+                      )}
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                        <p className="text-xs font-semibold mb-2 text-slate-700 uppercase tracking-wide">Single day</p>
+
+                        <div className="flex gap-2">
+                          <input
+                              type="date"
+                              value={singleDate}
+                              onChange={(e) => setSingleDate(e.target.value)}
+                              className="flex-1 rounded-xl border px-3 py-2 text-xs"
+                          />
+                          <button
+                              type="button"
+                              onClick={handleAddSingleDate}
+                              disabled={!singleDate}
+                              className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                          >
+                            <PlusCircle className="w-3 h-3" />
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                        <p className="text-xs font-semibold mb-2 text-slate-700 uppercase tracking-wide">Date range</p>
+
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <input
+                                type="date"
+                                value={rangeStart}
+                                onChange={(e) => setRangeStart(e.target.value)}
+                                className="w-1/2 rounded-xl border px-3 py-2 text-xs"
+                            />
+                            <input
+                                type="date"
+                                value={rangeEnd}
+                                onChange={(e) => setRangeEnd(e.target.value)}
+                                className="w-1/2 rounded-xl border px-3 py-2 text-xs"
+                            />
+                          </div>
+
+                          <button
+                              type="button"
+                              onClick={handleAddRange}
+                              className="inline-flex items-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600"
+                          >
+                            <PlusCircle className="w-3 h-3" />
+                            Add range
+                          </button>
+
+                          <div className="flex gap-2 mt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                  const { start, end } = getNextWeekRange();
+                                  setRangeStart(start);
+                                  setRangeEnd(end);
+                                  const dates = generateDateRange(start, end);
+                                  setTargetDates((prev) => {
+                                    const s = new Set(prev);
+                                    dates.forEach((d) => s.add(d));
+                                    return Array.from(s).sort();
+                                  });
+                                }}
+                                className="px-3 py-1.5 text-xs rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                            >
+                              Next Week
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                  const { start, end } = getNextMonthRange();
+                                  setRangeStart(start);
+                                  setRangeEnd(end);
+                                  const dates = generateDateRange(start, end);
+                                  setTargetDates((prev) => {
+                                    const s = new Set(prev);
+                                    dates.forEach((d) => s.add(d));
+                                    return Array.from(s).sort();
+                                  });
+                                }}
+                                className="px-3 py-1.5 text-xs rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200"
+                            >
+                              Next Month
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {targetDates.length === 0 ? (
+                          <p className="text-xs text-slate-500">No dates selected yet.</p>
+                      ) : (
+                          targetDates.map((d) => (
+                              <span
+                                  key={d}
+                                  className="inline-flex items-center gap-1 rounded-full border bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+                              >
+                          {d}
+                                <button type="button" onClick={() => handleRemoveDate(d)} className="text-[11px] font-bold">
+                            ✕
+                          </button>
+                        </span>
+                          ))
+                      )}
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                    <p className="text-xs font-semibold mb-2 text-slate-700 uppercase tracking-wide">
-                      Date range
-                    </p>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                      <p className="text-sm font-semibold text-slate-800">Daily time window</p>
+                    </div>
 
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div>
+                        <label className="block text-xs mb-1">Start</label>
                         <input
-                          type="date"
-                          value={rangeStart}
-                          onChange={(e) => setRangeStart(e.target.value)}
-                          className="w-1/2 rounded-xl border px-3 py-2 text-xs"
-                        />
-                        <input
-                          type="date"
-                          value={rangeEnd}
-                          onChange={(e) => setRangeEnd(e.target.value)}
-                          className="w-1/2 rounded-xl border px-3 py-2 text-xs"
+                            type="time"
+                            value={dailyStartTime}
+                            onChange={(e) => setDailyStartTime(e.target.value)}
+                            className="w-full rounded-xl border px-3 py-2 text-xs"
                         />
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={handleAddRange}
-                        className="inline-flex items-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600"
-                      >
-                        <PlusCircle className="w-3 h-3" />
-                        Add range
-                      </button>
+                      <div>
+                        <label className="block text-xs mb-1">End</label>
+                        <input
+                            type="time"
+                            value={dailyEndTime}
+                            onChange={(e) => setDailyEndTime(e.target.value)}
+                            className="w-full rounded-xl border px-3 py-2 text-xs"
+                        />
+                      </div>
 
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const { start, end } = getNextWeekRange();
-                            setRangeStart(start);
-                            setRangeEnd(end);
-
-                            const dates = generateDateRange(start, end);
-                            setTargetDates((prev) => {
-                              const set = new Set(prev);
-                              dates.forEach((d) => set.add(d));
-                              return Array.from(set).sort();
-                            });
-                          }}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                        >
-                          Next Week
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const { start, end } = getNextMonthRange();
-                            setRangeStart(start);
-                            setRangeEnd(end);
-
-                            const dates = generateDateRange(start, end);
-                            setTargetDates((prev) => {
-                              const set = new Set(prev);
-                              dates.forEach((d) => set.add(d));
-                              return Array.from(set).sort();
-                            });
-                          }}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200"
-                        >
-                          Next Month
-                        </button>
+                      <div>
+                        <SlotPresetSelector value={slotDuration} onChange={setSlotDuration} />
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {targetDates.length === 0 ? (
-                    <p className="text-xs text-slate-500">
-                      No dates selected yet.
-                    </p>
-                  ) : (
-                    targetDates.map((d) => (
-                      <span
-                        key={d}
-                        className="inline-flex items-center gap-1 rounded-full border bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                      >
-                        {d}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDate(d)}
-                          className="text-[11px] font-bold"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))
+                  {error && (
+                      <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+                  )}
+
+                  <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loading ? "Creating…" : "Create Poll"}
+                  </button>
+                </form>
+              </div>
+
+              <div className="w-full md:w-5/12 bg-slate-900 text-slate-50 px-6 py-7 md:px-7 md:py-10 flex flex-col justify-between">
+                <div className="flex flex-col flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-300">Live Preview</p>
+
+                  <h2 className="mt-2 text-lg font-semibold">Available Times Overview</h2>
+
+                  <div className="mt-5 space-y-3 flex-1 overflow-y-auto">
+                    {previewDates.length === 0 ? (
+                        <p className="text-xs text-slate-400">Add dates to see preview</p>
+                    ) : (
+                        previewDates.map((d, idx) => (
+                            <div key={d} className="flex items-center justify-between gap-4">
+                              <div className="flex-1">
+                                <div
+                                    className="h-2 rounded-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400"
+                                    style={{ width: `${Math.max(15, 100 - idx * 5)}%` }}
+                                />
+                              </div>
+
+                              <div className="text-right">
+                                <p className="text-xs font-medium">
+                                  {new Date(d).toLocaleDateString("en-US", {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </p>
+                                <p className="text-[11px] text-slate-400">
+                                  {dailyStartTime} – {dailyEndTime}
+                                </p>
+                              </div>
+                            </div>
+                        ))
+                    )}
+                  </div>
+
+                  {sampleSlots.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[11px] text-slate-400 mb-2">First day example slots:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {sampleSlots.map((slot) => (
+                              <span key={slot.toISOString()} className="rounded-full bg-slate-800 px-2 py-1 text-[11px]">
+                          {formatTime(slot)}
+                        </span>
+                          ))}
+                        </div>
+                      </div>
                   )}
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
-                  <p className="text-sm font-semibold text-slate-800">
-                    Daily time window
-                  </p>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <label className="block text-xs mb-1">Start</label>
-                    <input
-                      type="time"
-                      value={dailyStartTime}
-                      onChange={(e) => setDailyStartTime(e.target.value)}
-                      className="w-full rounded-xl border px-3 py-2 text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs mb-1">End</label>
-                    <input
-                      type="time"
-                      value={dailyEndTime}
-                      onChange={(e) => setDailyEndTime(e.target.value)}
-                      className="w-full rounded-xl border px-3 py-2 text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <SlotPresetSelector value={slotDuration} onChange={setSlotDuration} />
-                  </div>
+                <div className="mt-6 border-t border-slate-700 pt-4 text-xs text-slate-400 flex gap-3">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+                  No signup needed
+                </span>
+                  <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-pink-400" />
+                  Instant availability view
+                </span>
                 </div>
               </div>
-
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                  {error}
-                </p>
-              )}
-
-              {successMessage && (
-                <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                  {successMessage}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:opacity-90 disabled:opacity-50"
-              >
-                {loading ? "Creating…" : "Create Poll"}
-              </button>
-            </form>
+            </div>
           </div>
+        </main>
 
-          <div className="w-full md:w-5/12 bg-slate-900 text-slate-50 px-6 py-7 md:px-7 md:py-10 flex flex-col justify-between">
-            <div className="flex flex-col flex-1">
+        {showSuccess && newPollId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowSuccess(false)} />
 
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-300">
-                Live Preview
-              </p>
+              <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 overflow-hidden">
+                <ReactConfetti width={400} height={400} recycle={false} numberOfPieces={200} />
 
-              <h2 className="mt-2 text-lg font-semibold">Available Times Overview</h2>
+                <div className="relative z-10 text-center">
+                  <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <Check className="w-8 h-8 text-green-600" strokeWidth={3} />
+                  </div>
 
-              <div className="mt-5 space-y-3 flex-1 overflow-y-auto">
-                {previewDates.length === 0 ? (
-                  <p className="text-xs text-slate-400">Add dates to see preview</p>
-                ) : (
-                  previewDates.map((d, idx) => (
-                    <div key={d} className="flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div
-                          className="h-2 rounded-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400"
-                          style={{ width: `${Math.max(15, 100 - idx * 5)}%` }}
-                        />
-                      </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Ready to share!</h2>
+                  <p className="text-slate-500 text-sm mb-6">Your poll has been created. Share the ID or link below.</p>
 
-                      <div className="text-right">
-                        <p className="text-xs font-medium">
-                          {new Date(d).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </p>
-                        <p className="text-[11px] text-slate-400">
-                          {dailyStartTime} – {dailyEndTime}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {sampleSlots.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-[11px] text-slate-400 mb-2">
-                    First day example slots:
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sampleSlots.map((slot) => (
-                      <span
-                        key={slot.toISOString()}
-                        className="rounded-full bg-slate-800 px-2 py-1 text-[11px]"
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">
+                    <p className="text-[10px] uppercase text-slate-400 font-bold mb-1 tracking-wider text-left pl-1">Poll ID</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-white border border-slate-200 rounded-lg py-2 px-3 font-mono text-slate-800 font-bold text-lg text-left">
+                        {newPollId}
+                      </code>
+                      <button
+                          onClick={handleCopyLink}
+                          className={`p-2.5 rounded-lg border transition-all ${
+                              copySuccess
+                                  ? "bg-green-500 border-green-500 text-white"
+                                  : "bg-white border-slate-200 text-slate-600 hover:border-indigo-500 hover:text-indigo-600"
+                          }`}
                       >
-                        {formatTime(slot)}
-                      </span>
-                    ))}
+                        {copySuccess ? <Check className="w-5 h-5"/> : <Copy className="w-5 h-5"/>}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                        onClick={() => router.push(`/polls/${newPollId}`)}
+                        className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all flex items-center justify-center gap-2"
+                    >
+                      Go to Poll <ExternalLink className="w-4 h-4" />
+                    </button>
+
+                    <button
+                        onClick={() => router.push('/')}
+                        className="w-full py-3 bg-white border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Return Home
+                    </button>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
-
-            <div className="mt-6 border-t border-slate-700 pt-4 text-xs text-slate-400 flex gap-3">
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" /> No signup needed
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-pink-400" /> Instant availability view
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+        )}
+      </>
   );
 }
