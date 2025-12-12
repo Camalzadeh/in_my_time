@@ -18,7 +18,7 @@ export default function HeroSection() {
                                 together
                             </h1>
                             <p className="text-lg text-foreground/60 leading-relaxed max-w-lg">
-                                Stop playing scheduling ping-pong. Easily discover common availability for your team, meetings, and
+                                Stop playing scheduling pong-ping. Easily discover common availability for your team, meetings, and
                                 events in seconds.
                             </p>
                         </div>
