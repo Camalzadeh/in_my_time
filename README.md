@@ -36,7 +36,7 @@ Realtime updates are powered by **Ably**.
 
 The project's detailed presentation, roadmap, and core concepts are available in the dedicated documentation file.
 
-* **Project Presentation:** View the full presentation in PDF format [here](https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/presentation.pdf).
+* **Project Presentation:** View the full presentation in PDF format [here](https://github.com/Camalzadeh/in_my_time/blob/main/presentation.pdf).
 
 ---
 
