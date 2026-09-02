@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/logo.png" alt="InMyTime Logo" width="150" />
+  <img src="docs/logo.png" alt="InMyTime Logo" width="150" />
 </p>
 <p align="center">
-  <img src="https://github.com/Camalzadeh/in_my_time/blob/0ea31f98602f1476bc9253b4d0c478524439efe7/docs/branding.png" alt="InMyTime Logo" width="150" />
+  <img src="docs/branding.png" alt="InMyTime branding" width="150" />
 </p>
 
 <p align="center">
@@ -11,12 +11,15 @@
 
 <p align="center">
   <a href="#about">About</a> •
-  <a href="#documentation">Documentation</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#environment-variables">Environment</a> •
   <a href="#features">Features</a> •
   <a href="#tech-stack">Tech Stack</a> •
-  <a href="#usage">Usage</a> •
+  <a href="#testing">Testing</a> •
+  <a href="#deployment">Deployment</a> •
   <a href="#api-routes">API Routes</a> •
   <a href="#project-structure">Project Structure</a> •
+  <a href="#troubleshooting">Troubleshooting</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#license">License</a>
 </p>
@@ -30,13 +33,51 @@ Users can create polls, propose multiple time slots, share links, and collect vo
 The system aggregates availability to highlight the best meeting times for everyone.  
 Realtime updates are powered by **Ably**.
 
+Live at **[inmytime.me](https://inmytime.me)**.
+
 ---
 
 ## Documentation
 
 The project's detailed presentation, roadmap, and core concepts are available in the dedicated documentation file.
 
-* **Project Presentation:** View the full presentation in PDF format [here](https://github.com/Camalzadeh/in_my_time/blob/main/presentation.pdf).
+* **Project Presentation:** View the full presentation in PDF format [here](presentation.pdf).
+
+---
+
+## Getting Started
+
+```bash
+git clone https://github.com/Camalzadeh/in_my_time.git
+cd in_my_time
+
+# --legacy-peer-deps is required: @ably-labs/react-hooks declares peer
+# dependencies on React 18, and this project runs React 19.
+npm ci --legacy-peer-deps
+
+cp .env.example .env.local   # then fill in the values
+npm run dev
+```
+
+The app is served on <http://localhost:3000>.
+
+A MongoDB connection is needed for anything beyond the landing page — creating a poll, opening a
+poll link and voting all talk to the database. The landing page is static and renders without one.
+
+---
+
+## Environment Variables
+
+Copy [.env.example](.env.example) to `.env.local` for local development, and set the same
+variables in your hosting provider for production.
+
+| Variable | Required | Used by | What happens without it |
+|----------|----------|---------|-------------------------|
+| `MONGODB_URI` | yes | [lib/mongodb.ts](lib/mongodb.ts) | Every API route returns 500 |
+| `ABLY_API_KEY` | for realtime | [app/api/ably/route.ts](app/api/ably/route.ts) | `/api/ably` returns 500; votes appear only after a reload |
+
+`MONGO_URI` is accepted as an alias for `MONGODB_URI` — the code originally read that name and
+existing deployments still set it.
 
 ---
 
@@ -77,30 +118,99 @@ The project's detailed presentation, roadmap, and core concepts are available in
 
 ---
 
+## Testing
+
+```bash
+npm run test:unit   # pure functions, no database, no network
+npm run test:int    # API and model tests
+npm test            # both
+```
+
+The integration tests do not need a real MongoDB: `@shelf/jest-mongodb` starts an in-memory
+server. The first run downloads a MongoDB binary, so it takes noticeably longer than later ones.
+
+---
+
+## Deployment
+
+Production runs on **Vercel**, deployed by
+[.github/workflows/vercel-cd.yml](.github/workflows/vercel-cd.yml) on every push to `main`.
+Runtime environment variables come from the Vercel project settings, not from the workflow.
+
+[.github/workflows/ghcr-cd.yml](.github/workflows/ghcr-cd.yml) also builds a Docker image and
+pushes it to `ghcr.io/camalzadeh/in_my_time` on every push to `main`, for self-hosting.
+
+```bash
+docker build -t in_my_time .
+docker run -p 3000:3000 \
+  -e MONGODB_URI="mongodb+srv://..." \
+  -e ABLY_API_KEY="..." \
+  in_my_time
+```
+
+Both workflows run [ci.yml](.github/workflows/ci.yml) first — lint, tests, build — and stop if it
+fails. Add `[no ci-cd]` to a commit message to skip them, or `[no cd]` to run CI without
+deploying.
+
+> Deployment to Google Cloud Run was removed in September 2026. If you find leftover references
+> to `europe-west1-docker.pkg.dev` or a `GCP_SA_KEY` secret anywhere, they are dead.
+
+---
+
 ## API Routes
 
 - **POST /api/polls** — Create a new poll  
 - **GET /api/polls/:id** — Get poll details by ID  
 - **POST /api/polls/:id/vote** — Add a vote to a specific slot  
 - **POST /api/polls/:id/finalize** — Finalize a poll  
+- **GET /api/ably** — Issue a short-lived Ably token for the browser  
+
+See [requests.http](requests.http) for ready-made example requests.
 
 ---
 
 ## Project Structure
 
 ```
-in_my_time/ 
-├── app/                # Next.js App Router pages & API routes 
-│ ├── api/              # Backend API endpoints (polls, votes, etc.) 
-│ └── components/       # Reusable UI components 
-├── lib/                # Utility functions (date ranges, slot generation, etc.) 
-├── tests/              # Unit & integration tests 
-│ ├── unit/             # Utility and component tests 
-│ └── integration/      # API and model tests 
-├── public/             # Static assets (images, icons) 
-├── package.json        # Dependencies and scripts 
-└── README.md           # Project documentation
+in_my_time/
+├── app/                # Next.js App Router pages & API routes
+│   ├── api/            # Backend API endpoints (polls, votes, ably)
+│   └── components/     # Page-level UI components
+├── components/         # Shared UI primitives (shadcn/ui)
+├── lib/                # Database connection, hooks, utilities
+│   ├── data/           # Server- and client-side data access
+│   ├── hooks/          # React hooks (poll manager, realtime, identity)
+│   └── utils/          # Slot generation, date ranges, time helpers
+├── models/             # Mongoose schemas
+├── types/              # Shared TypeScript types
+├── tests/              # Unit & integration tests
+│   ├── unit/           # Pure functions, mocked I/O
+│   └── integration/    # API and model tests against an in-memory MongoDB
+├── public/             # Static assets (images, icons)
+├── docs/               # Presentation and branding assets
+├── .github/workflows/  # CI and deployment pipelines
+├── Dockerfile          # Container image for self-hosting
+└── .env.example        # Required environment variables
 ```
+
+---
+
+## Troubleshooting
+
+**Every API route returns 500 after roughly 5 seconds.** The database is unreachable, not the
+app. On a free MongoDB Atlas cluster the two usual causes are that the cluster was paused
+automatically after a long idle period — check its status in the Atlas UI and press *Resume* — or
+that the deployment's IP is no longer covered by `Network Access → IP Access List`. Vercel's
+egress addresses are not fixed, so that list normally has to allow `0.0.0.0/0`.
+
+**Poll creation fails immediately with "Server error: Could not create poll."** `MONGODB_URI` is
+not set in the environment the app actually runs in. On Vercel that is the project settings, not
+the workflow file.
+
+**Votes only show up after a manual reload.** Realtime delivery is missing. Check that
+`ABLY_API_KEY` is set and that the Atlas trigger which publishes updates to Ably is still
+enabled — Atlas disables triggers on a paused cluster and does not always re-enable them on
+resume.
 
 ---
 

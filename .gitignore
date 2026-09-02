@@ -9,6 +9,7 @@
 .env.local
 .env.*.local
 .env.development.local
+!.env.example
 
 # HTTP Client environment variables
 http-client.env.json
