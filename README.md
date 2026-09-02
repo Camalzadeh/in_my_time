@@ -133,12 +133,15 @@ server. The first run downloads a MongoDB binary, so it takes noticeably longer 
 
 ## Deployment
 
-Production runs on **Vercel**, deployed by
-[.github/workflows/vercel-cd.yml](.github/workflows/vercel-cd.yml) on every push to `main`.
-Runtime environment variables come from the Vercel project settings, not from the workflow.
+Production runs on **Vercel**, deployed by Vercel's own GitHub integration: every push to `main`
+is built and released by Vercel directly, with no workflow in this repository. Runtime
+environment variables come from the Vercel project settings.
 
-[.github/workflows/ghcr-cd.yml](.github/workflows/ghcr-cd.yml) also builds a Docker image and
-pushes it to `ghcr.io/camalzadeh/in_my_time` on every push to `main`, for self-hosting.
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs lint, tests and a build on pull
+requests and on pushes to `main` and `features/**`. It deploys nothing. Add `[no ci-cd]` or
+`[no ci]` to a commit message to skip it.
+
+A [Dockerfile](Dockerfile) is kept for self-hosting, but no pipeline builds it any more:
 
 ```bash
 docker build -t in_my_time .
@@ -148,12 +151,11 @@ docker run -p 3000:3000 \
   in_my_time
 ```
 
-Both workflows run [ci.yml](.github/workflows/ci.yml) first — lint, tests, build — and stop if it
-fails. Add `[no ci-cd]` to a commit message to skip them, or `[no cd]` to run CI without
-deploying.
-
-> Deployment to Google Cloud Run was removed in September 2026. If you find leftover references
-> to `europe-west1-docker.pkg.dev` or a `GCP_SA_KEY` secret anywhere, they are dead.
+> Cloud Run, the GHCR image pipeline and the GitHub-Actions Vercel deployment were all removed in
+> September 2026 — the Vercel action pinned an old CLI that the platform had stopped accepting,
+> and nothing was consuming the GHCR images. Any leftover reference to
+> `europe-west1-docker.pkg.dev`, `GCP_SA_KEY`, `VERCEL_TOKEN`, `VERCEL_ORG_ID` or
+> `VERCEL_PROJECT_ID` is dead, and those repository secrets can be deleted.
 
 ---
 
@@ -188,7 +190,7 @@ in_my_time/
 │   └── integration/    # API and model tests against an in-memory MongoDB
 ├── public/             # Static assets (images, icons)
 ├── docs/               # Presentation and branding assets
-├── .github/workflows/  # CI and deployment pipelines
+├── .github/workflows/  # Lint, test and build on every push
 ├── Dockerfile          # Container image for self-hosting
 └── .env.example        # Required environment variables
 ```
