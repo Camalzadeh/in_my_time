@@ -1,26 +1,26 @@
-import {notFound} from "next/navigation";
-import {API_ROUTES} from "@/lib/routes";
-import { getBaseUrl } from "@/lib/data/get-base-url";
+import { notFound } from "next/navigation";
+import mongoose from "mongoose";
 
+import { connectDB } from "@/lib/mongodb";
+import { Poll } from "@/models/Poll";
 
+// This runs on the server, so it reads the database directly. Going through
+// /api/polls/:id would cost a second serverless invocation and a full HTTPS
+// round trip to our own domain for every poll page.
 export async function getPollDataServer(pollId: string) {
-    const baseUrl = await getBaseUrl();
-    const apiPath = API_ROUTES.POLL_DETAIL_API(pollId);
-    const fullUrl = `${baseUrl}${apiPath}`;
-
-    const res = await fetch(fullUrl, {
-        cache: 'no-store',
-    });
-
-    if (res.status === 404) {
-        notFound();
+    if (!mongoose.Types.ObjectId.isValid(pollId)) {
+        return notFound();
     }
 
-    if (!res.ok) {
-        const errorDetail = await res.text();
-        throw new Error(`Failed to fetch poll data from ${fullUrl}. Status: ${res.status}. Details: ${errorDetail}`);
+    await connectDB();
+
+    const poll = await Poll.findById(pollId).lean();
+
+    if (!poll) {
+        return notFound();
     }
 
-    return res.json();
+    // Same shape the API route returned: ObjectIds and Dates become strings, so
+    // the client component still receives serialisable props.
+    return JSON.parse(JSON.stringify(poll));
 }
-

@@ -1,6 +1,8 @@
 import mongoose, { Mongoose } from 'mongoose';
 
-const MONGO_URI = process.env.MONGO_URI;
+// Both names are accepted: the code has always read MONGO_URI, while every
+// workflow and most hosting providers hand over MONGODB_URI.
+const MONGO_URI = process.env.MONGODB_URI ?? process.env.MONGO_URI;
 
 declare global {
     var mongoose: {
@@ -23,11 +25,15 @@ export async function connectDB() {
 
     if (!cached.promise) {
         if (!MONGO_URI) {
-            throw new Error('MONGO_URI environment variable is not defined!');
+            throw new Error('MONGODB_URI environment variable is not defined!');
         }
 
         const opts = {
             bufferCommands: false,
+            // Default is 30s. When the cluster is unreachable — paused free
+            // tier, IP access list — that is 30 seconds of a spinning page and
+            // of serverless execution time per request.
+            serverSelectionTimeoutMS: 5000,
         };
 
         cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {

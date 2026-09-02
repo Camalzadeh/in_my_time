@@ -15,6 +15,7 @@ describe('connectDB', () => {
         global.mongoose = { conn: null, promise: null };
 
         process.env = { ...originalEnv };
+        delete process.env.MONGODB_URI;
     });
 
     afterAll(() => {
@@ -35,12 +36,29 @@ describe('connectDB', () => {
         expect(mockConnect).not.toHaveBeenCalled();
     });
 
-    it('should throw error if MONGO_URI is not defined', async () => {
+    it('should throw error if neither MONGODB_URI nor MONGO_URI is defined', async () => {
+        delete process.env.MONGODB_URI;
         delete process.env.MONGO_URI;
 
         const { connectDB } = await import('@/lib/mongodb');
 
-        await expect(connectDB()).rejects.toThrow('MONGO_URI environment variable is not defined!');
+        await expect(connectDB()).rejects.toThrow('MONGODB_URI environment variable is not defined!');
+    });
+
+    it('should prefer MONGODB_URI over MONGO_URI', async () => {
+        const mockMongoose = { connection: 'new' };
+        mockConnect.mockResolvedValueOnce(mockMongoose);
+
+        process.env.MONGODB_URI = 'mongodb://localhost:27017/preferred';
+        process.env.MONGO_URI = 'mongodb://localhost:27017/legacy';
+
+        const { connectDB } = await import('@/lib/mongodb');
+        await connectDB();
+
+        expect(mockConnect).toHaveBeenCalledWith(
+            'mongodb://localhost:27017/preferred',
+            expect.anything()
+        );
     });
 
     it('should create new connection when cache is empty', async () => {
@@ -54,7 +72,7 @@ describe('connectDB', () => {
 
         expect(mockConnect).toHaveBeenCalledWith(
             'mongodb://localhost:27017/test',
-            { bufferCommands: false }
+            { bufferCommands: false, serverSelectionTimeoutMS: 5000 }
         );
         expect(result).toBe(mockMongoose);
     });

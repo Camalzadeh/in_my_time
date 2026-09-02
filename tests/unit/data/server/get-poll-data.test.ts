@@ -1,69 +1,69 @@
 import { getPollDataServer } from "@/lib/data/server/get-poll-data";
-import { API_ROUTES } from "@/lib/routes";
 
 jest.mock("next/navigation", () => ({
   notFound: jest.fn(),
 }));
 
-jest.mock("@/lib/data/get-base-url", () => ({
-  getBaseUrl: jest.fn(),
+jest.mock("@/lib/mongodb", () => ({
+  connectDB: jest.fn(),
 }));
 
-global.fetch = jest.fn();
+jest.mock("@/models/Poll", () => ({
+  Poll: { findById: jest.fn() },
+}));
 
 import { notFound } from "next/navigation";
-import { getBaseUrl } from "@/lib/data/get-base-url";
+import { connectDB } from "@/lib/mongodb";
+import { Poll } from "@/models/Poll";
+
+const VALID_ID = "6929706508c6645b99b18675";
+
+const mockFindById = (result: unknown) => {
+  (Poll.findById as jest.Mock).mockReturnValue({
+    lean: jest.fn().mockResolvedValue(result),
+  });
+};
 
 describe("getPollDataServer", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("returns JSON data when response is ok", async () => {
-    (getBaseUrl as jest.Mock).mockResolvedValue("https://example.com");
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ id: "123", question: "Test poll?" }),
+  test("reads the poll from the database and returns plain JSON", async () => {
+    const votedAt = new Date("2025-11-25T09:00:00.000Z");
+    mockFindById({ _id: VALID_ID, title: "Test poll?", votes: [{ votedAt }] });
+
+    const result = await getPollDataServer(VALID_ID);
+
+    expect(connectDB).toHaveBeenCalled();
+    expect(Poll.findById).toHaveBeenCalledWith(VALID_ID);
+    expect(result).toEqual({
+      _id: VALID_ID,
+      title: "Test poll?",
+      votes: [{ votedAt: votedAt.toISOString() }],
     });
-
-    const result = await getPollDataServer("123");
-
-    const expectedUrl =
-      "https://example.com" + API_ROUTES.POLL_DETAIL_API("123");
-
-    expect(fetch).toHaveBeenCalledWith(expectedUrl, {
-      cache: "no-store",
-    });
-
-    expect(result).toEqual({ id: "123", question: "Test poll?" });
   });
 
-  test("calls notFound() when status is 404", async () => {
-    (getBaseUrl as jest.Mock).mockResolvedValue("https://example.com");
+  test("never reaches the database for a malformed id", async () => {
+    await getPollDataServer("not-an-object-id");
 
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: async () => "Not found",
-    });
+    expect(notFound).toHaveBeenCalled();
+    expect(Poll.findById).not.toHaveBeenCalled();
+  });
 
-    await getPollDataServer("999").catch(() => {});
+  test("calls notFound() when the poll does not exist", async () => {
+    mockFindById(null);
+
+    await getPollDataServer(VALID_ID);
 
     expect(notFound).toHaveBeenCalled();
   });
 
-  test("throws error on other HTTP errors", async () => {
-    (getBaseUrl as jest.Mock).mockResolvedValue("https://example.com");
-
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: async () => "Internal Server Error",
+  test("lets a database error propagate", async () => {
+    (Poll.findById as jest.Mock).mockReturnValue({
+      lean: jest.fn().mockRejectedValue(new Error("connection timed out")),
     });
 
-    await expect(getPollDataServer("123")).rejects.toThrow(
-      "Failed to fetch poll data"
-    );
+    await expect(getPollDataServer(VALID_ID)).rejects.toThrow("connection timed out");
   });
 });
