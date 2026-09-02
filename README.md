@@ -16,6 +16,7 @@
   <a href="#features">Features</a> •
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#testing">Testing</a> •
+  <a href="#realtime">Realtime</a> •
   <a href="#deployment">Deployment</a> •
   <a href="#api-routes">API Routes</a> •
   <a href="#project-structure">Project Structure</a> •
@@ -131,6 +132,61 @@ server. The first run downloads a MongoDB binary, so it takes noticeably longer 
 
 ---
 
+## Realtime
+
+Live updates do **not** originate in this codebase. `POST /api/polls/:id/vote` writes to MongoDB
+and returns — nothing here publishes to Ably. The publish happens in Atlas:
+
+```
+   vote written to  inmytime.polls
+            |
+            v
+   Atlas Database Trigger  "AblyInMyTime"
+   watches INSERT / UPDATE / REPLACE / DELETE, full_document: true
+            |
+            v
+   POST https://rest.ably.io/channels/poll-<pollId>-updates/messages
+        { name: "db-update", data: <the whole poll document> }
+            |
+            v
+   useChannel("poll-<pollId>-updates")   -- lib/hooks/use-poll-realtime.ts
+```
+
+Three things have to be in place, and only the first lives in this repository:
+
+| Piece | Where it lives | Symptom when missing |
+|-------|----------------|----------------------|
+| `ABLY_API_KEY` | app environment | `/api/ably` returns 500; the browser never subscribes |
+| The trigger function's own Ably key | Atlas App Services | writes never reach the channel |
+| The `AblyInMyTime` trigger | Atlas App Services | same |
+
+In every case the vote is still saved — it just does not appear on other people's screens until
+they reload, which is why a broken trigger is easy to miss.
+
+### Things worth knowing before you touch it
+
+**The trigger is bound to one cluster in one Atlas project.** Moving the database to another
+cluster or project does not carry it over; it has to be recreated there, pointed at the new data
+source. Nothing in this repository does that for you.
+
+**It is invisible in the default API listing.** Triggers created from the Atlas UI belong to an
+App Services app with `product=atlas`, so `GET /groups/{groupId}/apps` returns an empty list and
+only `GET /groups/{groupId}/apps?product=atlas` shows it.
+
+**The database and collection names are part of the trigger config** (`inmytime.polls`). A
+connection string pointing at a different database will work for the app and silently break
+realtime.
+
+**The Ably key is currently hardcoded in the trigger function's source.** It should be an App
+Services Secret referenced through `context.values`. Until then, anyone who can read the function
+can read the key.
+
+**The function assumes `changeEvent.fullDocument` exists**, but a DELETE event does not carry one.
+The app has no delete endpoint today, so it never fires; adding one would make the trigger throw
+and, after repeated failures, Atlas can suspend it.
+
+---
+
 ## Deployment
 
 Production runs on **Vercel**, deployed by Vercel's own GitHub integration: every push to `main`
@@ -199,20 +255,28 @@ in_my_time/
 
 ## Troubleshooting
 
-**Every API route returns 500 after roughly 5 seconds.** The database is unreachable, not the
-app. On a free MongoDB Atlas cluster the two usual causes are that the cluster was paused
-automatically after a long idle period — check its status in the Atlas UI and press *Resume* — or
-that the deployment's IP is no longer covered by `Network Access → IP Access List`. Vercel's
-egress addresses are not fixed, so that list normally has to allow `0.0.0.0/0`.
+**Every API route returns 500 after roughly 5 seconds, while the landing page still loads.** The
+database is unreachable; the app is fine. The landing page is static, so it survives on its own.
+Check, in order: `Network Access → IP Access List` covers the deployment (Vercel's egress
+addresses are not fixed, so this normally has to be `0.0.0.0/0`); the cluster is not paused, which
+Atlas does automatically to idle free clusters; and the connection string in the hosting
+provider's own settings is current.
+
+If all three look right, check whether the cluster is actually serving rather than merely listed
+as existing. A cluster can sit in `UPDATING` indefinitely with its nodes dead — the honest test is
+to resolve the SRV record `_mongodb._tcp.<host>` and open a TCP connection to port 27017 on each
+shard host. Nodes that do not answer, or a shard hostname that no longer resolves at all, mean the
+cluster is broken on Atlas's side and no setting you change will bring it back.
 
 **Poll creation fails immediately with "Server error: Could not create poll."** `MONGODB_URI` is
 not set in the environment the app actually runs in. On Vercel that is the project settings, not
 the workflow file.
 
-**Votes only show up after a manual reload.** Realtime delivery is missing. Check that
-`ABLY_API_KEY` is set and that the Atlas trigger which publishes updates to Ably is still
-enabled — Atlas disables triggers on a paused cluster and does not always re-enable them on
-resume.
+**Votes only show up after a manual reload.** The write succeeded and the publish did not — see
+[Realtime](#realtime) for the three places that can break. Work backwards: the App Services logs
+show whether the trigger fired at all, and the trigger function can be run by hand against a
+made-up change event to test the Ably key without touching the database. If the trigger is not
+even listed, remember that the default app listing hides it — ask for `?product=atlas`.
 
 ---
 
