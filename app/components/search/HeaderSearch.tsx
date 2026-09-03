@@ -1,116 +1,123 @@
-import { useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Search, ArrowRight } from "lucide-react";
-import { UI_PATHS} from "@/lib/routes";
-import {getPollStatusClient} from "@/lib/data/client/get-poll-status";
+'use client';
 
-export default function HeaderSearch() {
-    const [pollId, setPollId] = useState("");
-    const [isError, setIsError] = useState(false);
+import { useId, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Loader2, Search } from 'lucide-react';
+
+import { UI_PATHS } from '@/lib/routes';
+import { getPollStatusClient } from '@/lib/data/client/get-poll-status';
+
+// Jump straight to a poll by its id.
+//
+// The previous version was missing "use client" entirely and only worked
+// because its parent had it. It also hand-computed a pixel width from the
+// character count, typed its handlers as `any`, had no form element (so Enter
+// depended on a keydown listener), and signalled failure with a red border and
+// no words.
+
+interface Props {
+    /** Focus on mount — used by the mobile overlay, which exists to search. */
+    autoFocus?: boolean;
+    onDone?: () => void;
+}
+
+export default function HeaderSearch({ autoFocus = false, onDone }: Props) {
     const router = useRouter();
+    const inputId = useId();
+    const errorId = useId();
 
-    const checkPoll = useCallback(async () => {
-        if (!pollId.trim()) {
-            setIsError(true);
+    const [pollId, setPollId] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [isChecking, setChecking] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const submit = async (event: React.FormEvent) => {
+        event.preventDefault();
+
+        const id = pollId.trim();
+        if (!id) {
+            setError('Enter a poll ID.');
+            inputRef.current?.focus();
             return;
         }
-        setIsError(false);
+
+        setError(null);
+        setChecking(true);
 
         try {
-            const status = await getPollStatusClient(pollId);
+            const status = await getPollStatusClient(id);
 
             if (status === 200) {
-                router.push(UI_PATHS.POLL_DETAIL(pollId));
-                setPollId("");
+                setPollId('');
+                onDone?.();
+                router.push(UI_PATHS.POLL_DETAIL(id));
+                return;
             }
-            else {
-                setIsError(true);
-            }
-        } catch (e) {
-            console.error("Server Error: ", e);
-            setIsError(true);
-        }
-    }, [pollId, router]);
 
-    const handleKeyDown = useCallback(async (e: { key: string; }) => {
-        if (e.key === 'Enter') {
-            await checkPoll();
-        }
-    }, [checkPoll]);
-
-    const handleChange = (e: { target: { value: any; }; }) => {
-        const value = e.target.value;
-        setPollId(value);
-        if (isError && value.trim()) {
-            setIsError(false);
+            setError(status === 400 ? 'That does not look like a poll ID.' : 'No poll with that ID.');
+        } catch {
+            setError('Could not reach the server.');
+        } finally {
+            setChecking(false);
         }
     };
 
-    const dynamicWidthStyle = useMemo(() => {
-        const baseWidth = 256;
-        const charWidth = 8;
-        const initialCharsToFill = 27;
-
-        let calculatedWidth;
-
-        if (pollId.length <= initialCharsToFill) {
-            calculatedWidth = baseWidth;
-        } else {
-            const extraWidth = (pollId.length - initialCharsToFill) * charWidth;
-            calculatedWidth = baseWidth + extraWidth;
-        }
-        const maxWidth = 350;
-        const finalWidth = Math.min(calculatedWidth, maxWidth);
-
-        return {
-            width: `${finalWidth}px`
-        };
-    }, [pollId.length]);
-
-
-    const isSubmitDisabled = !pollId.trim();
-
     return (
-        <div className="flex items-center gap-2">
+        <form onSubmit={submit} className="w-full" noValidate>
+            <label htmlFor={inputId} className="sr-only">
+                Open a poll by ID
+            </label>
 
-            <div className="relative flex items-center shrink-0" style={dynamicWidthStyle}>
+            <div className="flex items-center gap-2">
+                <div className="relative min-w-0 flex-1">
+                    <Search
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                        aria-hidden
+                    />
+                    <input
+                        ref={inputRef}
+                        id={inputId}
+                        value={pollId}
+                        onChange={(event) => {
+                            setPollId(event.target.value);
+                            if (error) setError(null);
+                        }}
+                        // The mobile overlay exists only to search, so focusing here is
+                        // what the user asked for by opening it.
+                        autoFocus={autoFocus}
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="Poll ID"
+                        aria-invalid={error !== null}
+                        aria-describedby={error ? errorId : undefined}
+                        className={`h-10 w-full rounded-full border bg-muted/50 pl-10 pr-4 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 ${
+                            error
+                                ? 'border-destructive focus-visible:ring-destructive'
+                                : 'border-transparent focus-visible:ring-ring'
+                        }`}
+                    />
+                </div>
 
-                <Search className="absolute left-3 w-4 h-4 text-foreground/50" />
-
-                <input
-                    type="text"
-                    value={pollId}
-                    onChange={handleChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Search Poll ID"
-
-                    className={`
-                        w-full h-10 pl-10 pr-4 text-sm bg-border/50 rounded-full transition-all
-                        focus:outline-none focus:ring-1 
-                        placeholder:text-foreground/50
-                        ${isError
-                        ? 'border border-red-600 focus:border-red-600 focus:ring-red-600/50'
-                        : 'border border-transparent focus:border-primary/50 focus:ring-primary/50'
-                    }
-                    `}
-                />
+                <button
+                    type="submit"
+                    disabled={isChecking}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                    {isChecking ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                        <ArrowRight className="h-4 w-4" aria-hidden />
+                    )}
+                    <span className="sr-only">{isChecking ? 'Checking' : 'Open poll'}</span>
+                </button>
             </div>
 
-            <button
-                onClick={checkPoll}
-                disabled={isSubmitDisabled}
-                className={`
-                    p-2 rounded-full h-8 w-8 shrink-0 transition-colors flex items-center justify-center
-                    ${(isError) 
-                    ? 'bg-red-500 text-white hover:bg-red-800 disabled:bg-red-500/50 disabled:cursor-not-allowed'
-                    : (isSubmitDisabled)
-                    ? 'bg-primary text-primary-foreground disabled:bg-primary/70 disabled:cursor-not-allowed'
-                    :'bg-primary text-primary-foreground hover:bg-primary/90'
-                }
-                `}
-            >
-                <ArrowRight className="w-5 h-5" />
-            </button>
-        </div>
+            {/* Said in words, not only as a red outline, and announced when it appears. */}
+            {error && (
+                <p id={errorId} role="alert" className="mt-1.5 px-3 text-xs text-destructive">
+                    {error}
+                </p>
+            )}
+        </form>
     );
 }

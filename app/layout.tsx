@@ -58,6 +58,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         // that the server markup and the client's do not agree.
         <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
             <body className="font-sans antialiased">
+                {/* Keyboard users had to tab through the entire header before
+                    reaching the page itself. */}
+                <a
+                    href="#main"
+                    className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+                >
+                    Skip to content
+                </a>
                 <Providers>{children}</Providers>
             </body>
         </html>

@@ -11,12 +11,16 @@ interface Props {
 /**
  * Poll links get pasted into group chats, so the preview card matters. Nothing
  * generated one before and every shared link unfurled as a blank box.
+ *
+ * The missing-poll case is decided here rather than in the component below:
+ * once metadata has resolved the response has begun, and a `notFound()` after
+ * that point renders the right page but leaves the status at 200.
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
     const data = await getPollPageData(id);
 
-    if (!data) return { title: 'Poll not found' };
+    if (!data) notFound();
 
     const { poll } = data;
     const days = poll.config.targetDates.length;
@@ -38,6 +42,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PollPage({ params }: Props) {
     const { id } = await params;
+
+    // Deduplicated with the call in generateMetadata, so this is not a second query.
     const data = await getPollPageData(id);
 
     if (!data) notFound();

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
+import ThemeToggle from '@/app/components/ThemeToggle';
+
 import type { PollPageData } from '@/lib/data/server/get-poll-data';
 import { applyPollEvent, type PollEvent } from '@/lib/poll-state';
 import { usePollManager } from '@/lib/hooks/use-poll-manager';
@@ -81,7 +83,7 @@ export default function PollView({ pollId, data }: Props) {
     };
 
     return (
-        <main className="min-h-screen bg-background px-4 py-8">
+        <main id="main" className="min-h-screen bg-background px-4 py-8">
             {data.realtimeEnabled && (
                 <PollRealtimeBridge
                     pollId={pollId}
@@ -110,13 +112,18 @@ export default function PollView({ pollId, data }: Props) {
             />
 
             <div className="mx-auto max-w-6xl space-y-6">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <ArrowLeft className="h-4 w-4" aria-hidden />
-                    Home
-                </Link>
+                {/* These pages have no site header, so the theme control lives here. */}
+                <div className="flex items-center justify-between">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        <ArrowLeft className="h-4 w-4" aria-hidden />
+                        Home
+                    </Link>
+
+                    <ThemeToggle />
+                </div>
 
                 <PollHeader
                     poll={poll}

@@ -10,6 +10,30 @@ interface RouteContext {
     params: Promise<{ id: string }>;
 }
 
+/**
+ * Existence check for the "open a poll by ID" box.
+ *
+ * Without this, Next answers HEAD by running GET and discarding the body — so
+ * checking whether an id is valid read the whole poll, votes included.
+ */
+export async function HEAD(_request: Request, context: RouteContext) {
+    const { id } = await context.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return new Response(null, { status: 400 });
+    }
+
+    try {
+        await connectDB();
+        const exists = await Poll.exists({ _id: id });
+
+        return new Response(null, { status: exists ? 200 : 404 });
+    } catch (error) {
+        console.error('[polls] existence check failed', { id, error });
+        return new Response(null, { status: 500 });
+    }
+}
+
 export async function GET(_request: Request, context: RouteContext) {
     const { id } = await context.params;
 

@@ -1,18 +1,20 @@
-import { API_ROUTES } from "@/lib/routes";
+import { API_ROUTES } from '@/lib/routes';
 
+/**
+ * Whether a poll exists, without downloading it.
+ *
+ * Returns the HTTP status, or 0 when the request could not be made at all —
+ * the caller distinguishes "no such poll" from "no network".
+ */
 export async function getPollStatusClient(pollId: string): Promise<number> {
-    const path = API_ROUTES.POLL_DETAIL_API(pollId);
-
     try {
-        const res = await fetch(path, {
+        const response = await fetch(API_ROUTES.POLL_DETAIL_API(pollId), {
             method: 'HEAD',
             cache: 'no-store',
         });
 
-        return res.status;
-
-    } catch (e) {
-        console.error(`Error fetching status for poll ${pollId}:`, e);
+        return response.status;
+    } catch {
         return 0;
     }
 }

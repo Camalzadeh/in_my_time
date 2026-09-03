@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import mongoose from 'mongoose';
 
@@ -22,21 +23,26 @@ export interface PollPageData {
  *
  * It does not call our own API over HTTPS: that cost a second serverless
  * invocation and a full TLS round trip for every poll page.
+ *
+ * Wrapped in `cache` because both `generateMetadata` and the page itself need
+ * this, and without it every poll view was two identical queries.
  */
-export async function getPollPageData(pollId: string): Promise<PollPageData | null> {
-    if (!mongoose.Types.ObjectId.isValid(pollId)) return null;
+export const getPollPageData = cache(
+    async (pollId: string): Promise<PollPageData | null> => {
+        if (!mongoose.Types.ObjectId.isValid(pollId)) return null;
 
-    await connectDB();
+        await connectDB();
 
-    const poll = await Poll.findById(pollId).lean<IPoll>();
-    if (!poll) return null;
+        const poll = await Poll.findById(pollId).lean<IPoll>();
+        if (!poll) return null;
 
-    const cookieStore = await cookies();
-    const ownerToken = cookieStore.get(ownerCookieName(pollId))?.value;
+        const cookieStore = await cookies();
+        const ownerToken = cookieStore.get(ownerCookieName(pollId))?.value;
 
-    return {
-        poll: toPublicPoll(poll),
-        isOwner: tokenMatchesHash(ownerToken, poll.ownerTokenHash),
-        realtimeEnabled: isRealtimeConfigured(),
-    };
-}
+        return {
+            poll: toPublicPoll(poll),
+            isOwner: tokenMatchesHash(ownerToken, poll.ownerTokenHash),
+            realtimeEnabled: isRealtimeConfigured(),
+        };
+    },
+);
