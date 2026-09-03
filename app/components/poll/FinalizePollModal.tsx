@@ -1,149 +1,148 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, CalendarCheck, AlertTriangle, Check,  Clock } from 'lucide-react';
+'use client';
 
-interface RankedSlot {
-    fullIso: string;
-    time: string;
-    date: string;
-    count: number;
-}
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
-interface FinalizePollModalProps {
+import type { RankedSlot } from '@/lib/hooks/use-poll-manager';
+
+interface Props {
     isOpen: boolean;
-    onClose: () => void;
-    onConfirm: (finalIso: string) => Promise<void>;
     rankedSlots: RankedSlot[];
+    onClose: () => void;
+    onConfirm: (finalSlot: string) => Promise<void>;
 }
 
-export default function FinalizePollModal({ isOpen, onClose, onConfirm, rankedSlots }: FinalizePollModalProps) {
-    const [selectedIso, setSelectedIso] = useState<string | null>(rankedSlots[0]?.fullIso || null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+export default function FinalizePollModal({ isOpen, rankedSlots, onClose, onConfirm }: Props) {
+    const [selected, setSelected] = useState<string | null>(null);
+    const [isSubmitting, setSubmitting] = useState(false);
 
-    const handleConfirm = async () => {
-        if (!selectedIso) return;
-        setIsSubmitting(true);
-        await onConfirm(selectedIso);
-        setIsSubmitting(false);
-        onClose();
-    };
+    // Default to the current front-runner each time the dialog opens, since the
+    // ranking may have moved while it was closed.
+    useEffect(() => {
+        if (isOpen) setSelected(rankedSlots[0]?.iso ?? null);
+    }, [isOpen, rankedSlots]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !isSubmitting) onClose();
+        };
+
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isOpen, isSubmitting, onClose]);
 
     if (!isOpen) return null;
 
+    const confirm = async () => {
+        if (!selected) return;
+        setSubmitting(true);
+        try {
+            await onConfirm(selected);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+                className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+                onClick={isSubmitting ? undefined : onClose}
+                aria-hidden
+            />
 
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-                >
-                    <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
-                                <CalendarCheck className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900">Finalize Poll</h2>
-                                <p className="text-sm text-gray-500">Select the final time to close voting.</p>
-                            </div>
-                        </div>
-                    </div>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="finalize-title"
+                className="relative flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl border border-border bg-card shadow-xl"
+            >
+                <div className="border-b border-border p-5">
+                    <h2 id="finalize-title" className="text-lg font-bold text-foreground">
+                        Close the poll
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Pick the time you are going with.
+                    </p>
+                </div>
 
-                    <div className="bg-amber-50 px-6 py-3 border-b border-amber-100 flex items-start gap-3">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                        <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                            Warning: This action will <strong>close the poll</strong> immediately. Participants will no longer be able to vote.
+                <div className="flex items-start gap-2.5 border-b border-border bg-accent/10 px-5 py-3">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
+                    <p className="text-xs leading-relaxed text-foreground">
+                        This stops all voting. It cannot be undone.
+                    </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5">
+                    {rankedSlots.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">
+                            Nobody has voted yet, so there is nothing to pick from.
                         </p>
-                    </div>
+                    ) : (
+                        <fieldset className="space-y-2">
+                            <legend className="sr-only">Final time</legend>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
-                        {rankedSlots.length === 0 ? (
-                            <p className="text-center text-gray-500 py-4">No votes have been cast yet.</p>
-                        ) : (
-                            rankedSlots.map((slot, idx) => {
-                                const isSelected = selectedIso === slot.fullIso;
-                                return (
-                                    <button
-                                        key={slot.fullIso}
-                                        onClick={() => setSelectedIso(slot.fullIso)}
-                                        className={`
-                                            w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all
-                                            ${isSelected
-                                            ? 'border-indigo-600 bg-indigo-50/50 shadow-md ring-1 ring-indigo-600'
-                                            : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'
-                                        }
-                                        `}
-                                    >
-                                        <div className="flex items-center gap-4 text-left">
-                                            <div className={`
-                                                w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
-                                                ${idx === 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}
-                                            `}>
-                                                {idx === 0 ? <Trophy className="w-4 h-4" /> : `#${idx + 1}`}
-                                            </div>
+                            {rankedSlots.slice(0, 10).map((slot, index) => (
+                                <label
+                                    key={slot.iso}
+                                    className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 transition-colors ${
+                                        selected === slot.iso
+                                            ? 'border-ring bg-primary/5 ring-2 ring-ring'
+                                            : 'border-border hover:bg-muted'
+                                    }`}
+                                >
+                                    <span className="flex items-center gap-3">
+                                        <input
+                                            type="radio"
+                                            name="final-slot"
+                                            value={slot.iso}
+                                            checked={selected === slot.iso}
+                                            onChange={() => setSelected(slot.iso)}
+                                            className="h-4 w-4 accent-[var(--primary)]"
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-semibold tabular-nums text-foreground">
+                                                {slot.label}
+                                            </span>
+                                            <span className="block text-xs text-muted-foreground">
+                                                {slot.weekday}, {slot.date}
+                                            </span>
+                                        </span>
+                                    </span>
 
-                                            <div>
-                                                <div className="flex items-center gap-2 font-bold text-gray-900">
-                                                    <Clock className="w-4 h-4 text-gray-400" />
-                                                    {slot.time}
-                                                </div>
-                                                <div className="text-xs text-gray-500 font-medium">
-                                                    {slot.date}
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                                        {slot.count} {slot.count === 1 ? 'vote' : 'votes'}
+                                        {index === 0 && ' · top'}
+                                    </span>
+                                </label>
+                            ))}
+                        </fieldset>
+                    )}
+                </div>
 
-                                        <div className="flex items-center gap-3">
-                                            <div className={`px-3 py-1 rounded-full text-xs font-bold ${isSelected ? 'bg-indigo-200 text-indigo-800' : 'bg-gray-100 text-gray-600'}`}>
-                                                {slot.count} votes
-                                            </div>
-                                            <div className={`
-                                                w-5 h-5 rounded-full border flex items-center justify-center
-                                                ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}
-                                            `}>
-                                                {isSelected && <Check className="w-3 h-3 text-white" />}
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })
-                        )}
-                    </div>
+                <div className="flex gap-3 border-t border-border p-5">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                        className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        Cancel
+                    </button>
 
-                    <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 py-3 rounded-xl font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleConfirm}
-                            disabled={!selectedIso || isSubmitting}
-                            className="flex-1 py-3 rounded-xl font-semibold text-white bg-indigo-900 hover:bg-black transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isSubmitting ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    <Check className="w-4 h-4" />
-                                    Confirm Final Time
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </motion.div>
+                    <button
+                        type="button"
+                        onClick={confirm}
+                        disabled={!selected || isSubmitting}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+                        Close poll
+                    </button>
+                </div>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

@@ -7,7 +7,7 @@ import Footer from "./Footer";
 
 export default function LandingPageWrapper() {
     return (
-        <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
+        <main id="main" className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
             <Header />
             <HeroSection />
             <FeaturesSection />

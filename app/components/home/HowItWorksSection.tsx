@@ -1,49 +1,57 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from 'lucide-react';
 
 const steps = [
     {
-        number: "01",
-        title: "Create",
-        description: "Choose your event and propose multiple date/time options",
+        title: 'Create',
+        description: 'Pick the days and the hours you want to offer. Takes about a minute.',
     },
     {
-        number: "02",
-        title: "Share",
-        description: "Send the unique link to your team or friends instantly",
+        title: 'Share',
+        description: 'Send the link. Everyone marks what suits them — no account needed.',
     },
     {
-        number: "03",
-        title: "Decide",
-        description: "See results in real-time and book the best time for everyone",
+        title: 'Decide',
+        description: 'The grid fills in as votes arrive. Close the poll on the time that wins.',
     },
-];
+] as const;
 
 export default function HowItWorksSection() {
     return (
-        <section id="how-it-works" className="relative py-20 md:py-32 bg-card/30">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center space-y-4 mb-16">
-                    <h2 className="text-4xl md:text-5xl font-bold text-foreground">How it works</h2>
-                    <p className="text-lg text-foreground/60 max-w-2xl mx-auto">Three simple steps to perfect scheduling</p>
+        <section id="how-it-works" className="border-t border-border bg-card/30 py-20 md:py-28">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-2xl text-center">
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                        How it works
+                    </h2>
+                    <p className="mt-3 text-lg text-muted-foreground">Three steps, no accounts.</p>
                 </div>
-                <div className="grid md:grid-cols-3 gap-8">
-                    {steps.map((step, i) => (
-                        <div key={i} className="relative">
-                            <div className="absolute -top-8 left-0 text-6xl font-bold text-primary/10">{step.number}</div>
-                            <div className="relative pt-8">
-                                <div className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-xl p-8 h-full">
-                                    <h3 className="text-2xl font-bold text-foreground mb-3">{step.title}</h3>
-                                    <p className="text-foreground/70">{step.description}</p>
-                                </div>
-                                {i < 2 && (
-                                    <div className="hidden md:flex absolute -right-4 top-1/2 transform -translate-y-1/2">
-                                        <ArrowRight className="w-8 h-8 text-primary/40" />
-                                    </div>
-                                )}
+
+                <ol className="mt-14 grid gap-6 md:grid-cols-3">
+                    {steps.map((step, index) => (
+                        <li key={step.title} className="relative">
+                            <div className="h-full rounded-2xl border border-border bg-card p-6">
+                                <span
+                                    className="text-sm font-bold tabular-nums text-primary"
+                                    aria-hidden
+                                >
+                                    {String(index + 1).padStart(2, '0')}
+                                </span>
+                                <h3 className="mt-2 text-xl font-bold text-foreground">{step.title}</h3>
+                                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                                    {step.description}
+                                </p>
                             </div>
-                        </div>
+
+                            {/* Derived from the list rather than a hardcoded `i < 2`. */}
+                            {index < steps.length - 1 && (
+                                <ArrowRight
+                                    className="absolute -right-5 top-1/2 hidden h-6 w-6 -translate-y-1/2 text-border md:block"
+                                    aria-hidden
+                                />
+                            )}
+                        </li>
                     ))}
-                </div>
+                </ol>
             </div>
         </section>
     );

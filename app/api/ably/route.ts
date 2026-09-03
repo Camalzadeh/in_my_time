@@ -1,23 +1,32 @@
-import {NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Ably from 'ably';
+
+// The browser connects to Ably directly, so it must never see the API key.
+// The server hands out a short-lived token request instead.
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    if (!process.env.ABLY_API_KEY) {
-        return NextResponse.json({ error: 'ABLY_API_KEY is not set' }, { status: 500 });
+    const key = process.env.ABLY_API_KEY;
+
+    if (!key) {
+        // This used to be a 500. It is a 503 now: nothing is broken, realtime
+        // is simply not configured, and the client falls back quietly.
+        return NextResponse.json({ error: 'realtime-disabled' }, { status: 503 });
     }
 
     try {
-        const client = new Ably.Rest(process.env.ABLY_API_KEY);
+        const client = new Ably.Rest(key);
 
-        const tokenRequestData = await client.auth.createTokenRequest({
-            clientId: 'nextjs-typescript-client',
+        // A distinct clientId per browser. It was a single hard-coded string
+        // before, so Ably could not tell connections apart.
+        const tokenRequest = await client.auth.createTokenRequest({
+            clientId: `viewer-${crypto.randomUUID()}`,
         });
 
-        return NextResponse.json(tokenRequestData);
+        return NextResponse.json(tokenRequest);
     } catch (error) {
-        console.error("Failed to create Ably token", error);
-        return NextResponse.json({ error: 'Failed to create Ably token' }, { status: 500 });
+        console.error('[ably] token request failed', error);
+        return NextResponse.json({ error: 'token-failed' }, { status: 502 });
     }
 }

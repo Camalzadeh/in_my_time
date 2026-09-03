@@ -1,143 +1,242 @@
-import { POST } from "@/app/api/polls/[id]/vote/route";
-import { Poll } from "@/models/Poll";
-import { NextRequest } from "next/server";
+import { POST as createPoll } from '@/app/api/polls/route';
+import { POST as castVote, DELETE as clearVote } from '@/app/api/polls/[id]/vote/route';
+import { Poll } from '@/models/Poll';
+import { ownerCookieName, voterCookieName } from '@/lib/auth/tokens';
 
-jest.mock("@/lib/mongodb", () => ({
-  connectDB: jest.fn().mockResolvedValue(undefined),
-}));
+import { setUpTestDatabase, validConfig, FIRST_SLOT, SECOND_SLOT } from '../helpers/db';
+import { jsonRequest, routeContext } from '../helpers/request';
 
-type ContextType = { params: Promise<{ id: string }> };
+setUpTestDatabase();
 
-function createMockRequest(body: unknown): NextRequest {
-  return {
-    json: async () => body,
-    cookies: { get: () => undefined, getAll: () => [], set: () => {}, delete: () => {} },
-    nextUrl: { pathname: "/", search: "", href: "http://localhost" } as unknown as URL,
-    body: null,
-    headers: new Headers(),
-    method: "POST",
-    url: "http://localhost",
-  } as unknown as NextRequest;
+async function makePoll() {
+    const response = await createPoll(
+        new Request('http://localhost/api/polls', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ title: 'Test poll', config: validConfig }),
+        }),
+    );
+
+    const { pollId } = await response.json();
+
+    return {
+        pollId,
+        ownerToken: response.cookies.get(ownerCookieName(pollId))!.value,
+    };
 }
 
-describe("POST /api/polls/[id]/vote integration tests", () => {
+async function vote(
+    pollId: string,
+    body: { voterId: string; voterName: string; selectedSlots: string[] },
+    cookies: Record<string, string> = {},
+) {
+    return castVote(
+        jsonRequest(`/api/polls/${pollId}/vote`, 'POST', body, cookies),
+        routeContext(pollId),
+    );
+}
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+describe('POST /api/polls/[id]/vote', () => {
+    it('records a vote and hands back a token', async () => {
+        const { pollId } = await makePoll();
 
-  it("returns 400 when pollId is missing", async () => {
-    const req = createMockRequest({
-      tempVoterId: "v1",
-      voterName: "John",
-      selectedSlots: [new Date().toISOString()],
+        const response = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Alice',
+            selectedSlots: [FIRST_SLOT],
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.cookies.get(voterCookieName(pollId))?.value).toEqual(expect.any(String));
+
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.votes).toHaveLength(1);
+        expect(poll!.votes[0].voterName).toBe('Alice');
+        expect(poll!.votes[0].selectedSlots[0].toISOString()).toBe(FIRST_SLOT);
     });
 
-    const context: ContextType = { params: Promise.resolve({ id: "" }) };
+    it('never returns the token hash', async () => {
+        const { pollId } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        const response = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Alice',
+            selectedSlots: [FIRST_SLOT],
+        });
 
-    expect(res.status).toBe(400);
-    expect(body.error).toBe("PollId is required.");
-  });
-
-  it("returns 400 for invalid vote body", async () => {
-    const req = createMockRequest({
-      tempVoterId: "",
-      voterName: "",
-      selectedSlots: "invalid",
+        expect(JSON.stringify(await response.json())).not.toContain('tokenHash');
     });
 
-    const context: ContextType = { params: Promise.resolve({ id: "valid-id" }) };
+    it('updates an existing vote rather than adding a second one', async () => {
+        const { pollId } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        const first = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Alice',
+            selectedSlots: [FIRST_SLOT],
+        });
+        const token = first.cookies.get(voterCookieName(pollId))!.value;
 
-    expect(res.status).toBe(400);
-    expect(body.error).toBe("tempVoterId, voterName, and selectedSlots are incomplete.");
-  });
+        await vote(
+            pollId,
+            { voterId: 'alice', voterName: 'Alice', selectedSlots: [SECOND_SLOT] },
+            { [voterCookieName(pollId)]: token },
+        );
 
-  it("returns 404 when poll is missing", async () => {
-    const mockChain = {
-      exec: jest.fn().mockResolvedValue(null)
-    };
-
-    jest.spyOn(Poll, 'findOneAndUpdate').mockReturnValue(mockChain as any);
-
-    const req = createMockRequest({
-      tempVoterId: "v1",
-      voterName: "John",
-      selectedSlots: [new Date().toISOString()],
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.votes).toHaveLength(1);
+        expect(poll!.votes[0].selectedSlots[0].toISOString()).toBe(SECOND_SLOT);
     });
 
-    const context: ContextType = { params: Promise.resolve({ id: "missing-id" }) };
+    // The old implementation looked for the vote and then pushed if it found
+    // none, with a gap in between. Two requests landing together produced two
+    // entries for one person.
+    it('does not duplicate a vote when two requests arrive at once', async () => {
+        const { pollId } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        await Promise.all([
+            vote(pollId, { voterId: 'alice', voterName: 'Alice', selectedSlots: [FIRST_SLOT] }),
+            vote(pollId, { voterId: 'alice', voterName: 'Alice', selectedSlots: [SECOND_SLOT] }),
+        ]);
 
-    expect(res.status).toBe(404);
-    expect(body.error).toBe("Poll object not found or update failed.");
-  });
-
-  it("creates a new vote", async () => {
-
-    const mockPollResponse = {
-      toObject: () => ({
-        votes: [{ voterId: "v1", voterName: "Alice" }]
-      })
-    };
-
-    const mockChain = {
-      exec: jest.fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce(mockPollResponse)
-    };
-
-    jest.spyOn(Poll, 'findOneAndUpdate').mockReturnValue(mockChain as any);
-
-    const req = createMockRequest({
-      tempVoterId: "v1",
-      voterName: "Alice",
-      selectedSlots: ["2025-01-01T10:00:00.000Z"],
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.votes).toHaveLength(1);
     });
 
-    const context: ContextType = { params: Promise.resolve({ id: "poll-id" }) };
+    it('refuses to change someone else’s vote', async () => {
+        const { pollId } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        await vote(pollId, { voterId: 'alice', voterName: 'Alice', selectedSlots: [FIRST_SLOT] });
 
-    expect(res.status).toBe(200);
-    expect(body.poll.votes).toHaveLength(1);
-    expect(body.poll.votes[0].voterName).toBe("Alice");
-  });
+        const response = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Mallory',
+            selectedSlots: [],
+        });
 
-  it("updates existing vote", async () => {
+        expect(response.status).toBe(403);
 
-    const mockPollResponse = {
-      toObject: () => ({
-        votes: [{ voterId: "v1", voterName: "New" }]
-      })
-    };
-
-    const mockChain = {
-      exec: jest.fn().mockResolvedValue(mockPollResponse)
-    };
-
-    jest.spyOn(Poll, 'findOneAndUpdate').mockReturnValue(mockChain as any);
-
-    const req = createMockRequest({
-      tempVoterId: "v1",
-      voterName: "New",
-      selectedSlots: ["2025-01-01T11:00:00.000Z"],
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.votes[0].voterName).toBe('Alice');
     });
 
-    const context: ContextType = { params: Promise.resolve({ id: "poll-id" }) };
+    it('lets the owner edit a vote without stealing its token', async () => {
+        const { pollId, ownerToken } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        const first = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Alice',
+            selectedSlots: [FIRST_SLOT],
+        });
+        const aliceToken = first.cookies.get(voterCookieName(pollId))!.value;
 
-    expect(res.status).toBe(200);
-    expect(body.poll.votes[0].voterName).toBe("New");
-  });
+        const asOwner = await vote(
+            pollId,
+            { voterId: 'alice', voterName: 'Alice', selectedSlots: [SECOND_SLOT] },
+            { [ownerCookieName(pollId)]: ownerToken },
+        );
+        expect(asOwner.status).toBe(200);
+
+        // Alice's own token must still work afterwards.
+        const asAlice = await vote(
+            pollId,
+            { voterId: 'alice', voterName: 'Alice', selectedSlots: [FIRST_SLOT] },
+            { [voterCookieName(pollId)]: aliceToken },
+        );
+        expect(asAlice.status).toBe(200);
+    });
+
+    it('rejects a slot that is not part of the poll', async () => {
+        const { pollId } = await makePoll();
+
+        const response = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Alice',
+            selectedSlots: ['2027-03-10T03:33:00.000Z'],
+        });
+
+        expect(response.status).toBe(400);
+    });
+
+    it('rejects an incomplete body with 400', async () => {
+        const { pollId } = await makePoll();
+
+        const response = await castVote(
+            jsonRequest(`/api/polls/${pollId}/vote`, 'POST', { voterId: '', voterName: '' }),
+            routeContext(pollId),
+        );
+
+        expect(response.status).toBe(400);
+    });
+
+    it('rejects a malformed poll id with 400', async () => {
+        const response = await castVote(
+            jsonRequest('/api/polls/not-an-id/vote', 'POST', {
+                voterId: 'a',
+                voterName: 'A',
+                selectedSlots: [],
+            }),
+            routeContext('not-an-id'),
+        );
+
+        expect(response.status).toBe(400);
+    });
+});
+
+describe('DELETE /api/polls/[id]/vote', () => {
+    it('clears your own vote', async () => {
+        const { pollId } = await makePoll();
+
+        const cast = await vote(pollId, {
+            voterId: 'alice',
+            voterName: 'Alice',
+            selectedSlots: [FIRST_SLOT],
+        });
+        const token = cast.cookies.get(voterCookieName(pollId))!.value;
+
+        const response = await clearVote(
+            jsonRequest(
+                `/api/polls/${pollId}/vote`,
+                'DELETE',
+                { voterId: 'alice' },
+                { [voterCookieName(pollId)]: token },
+            ),
+            routeContext(pollId),
+        );
+
+        expect(response.status).toBe(200);
+        expect((await Poll.findById(pollId).lean())!.votes).toHaveLength(0);
+    });
+
+    it('refuses to clear a stranger’s vote', async () => {
+        const { pollId } = await makePoll();
+
+        await vote(pollId, { voterId: 'alice', voterName: 'Alice', selectedSlots: [FIRST_SLOT] });
+
+        const response = await clearVote(
+            jsonRequest(`/api/polls/${pollId}/vote`, 'DELETE', { voterId: 'alice' }),
+            routeContext(pollId),
+        );
+
+        expect(response.status).toBe(403);
+        expect((await Poll.findById(pollId).lean())!.votes).toHaveLength(1);
+    });
+
+    it('lets the owner clear anyone’s vote', async () => {
+        const { pollId, ownerToken } = await makePoll();
+
+        await vote(pollId, { voterId: 'alice', voterName: 'Alice', selectedSlots: [FIRST_SLOT] });
+
+        const response = await clearVote(
+            jsonRequest(
+                `/api/polls/${pollId}/vote`,
+                'DELETE',
+                { voterId: 'alice' },
+                { [ownerCookieName(pollId)]: ownerToken },
+            ),
+            routeContext(pollId),
+        );
+
+        expect(response.status).toBe(200);
+    });
 });

@@ -1,70 +1,83 @@
+'use client';
 
-import React from 'react';
-import { Trophy, Clock, CalendarCheck, Users, Info } from 'lucide-react';
-import type { IPoll } from '@/types/Poll';
-import PollParticipants from './PollParticipants';
+import { CalendarCheck, Users } from 'lucide-react';
 
-interface FinalizedPollViewProps {
-    poll: IPoll;
-    isOwner: boolean;
+import type { PublicPoll } from '@/lib/data/serialize';
+import { formatInZone } from '@/lib/time/zone';
+
+interface Props {
+    poll: PublicPoll;
     currentVoterId: string;
-    onClearVote: (voterId: string, voterName: string) => void;
+    timezone: string;
 }
 
-export default function FinalizedPollView({ poll, isOwner, currentVoterId, onClearVote }: FinalizedPollViewProps) {
+export default function FinalizedPollView({ poll, currentVoterId, timezone }: Props) {
+    const final = poll.finalTime ? new Date(poll.finalTime) : null;
 
-    const finalDate = poll.finalTime ? new Date(poll.finalTime) : null;
-    const finalTimeFormatted = finalDate ? finalDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-    const finalDateFormatted = finalDate ? finalDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'N/A';
+    // Who said yes to the time that was actually chosen.
+    const attending = final
+        ? poll.votes.filter((vote) => vote.selectedSlots.includes(final.toISOString()))
+        : [];
 
     return (
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 sm:p-8 space-y-8">
-
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl border-2 border-indigo-200 shadow-lg shadow-indigo-100">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-amber-500 rounded-full text-white shadow-xl shadow-amber-200">
-                        <Trophy className="w-8 h-8 fill-amber-300" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <CalendarCheck className="w-5 h-5 text-indigo-600" />
-                            Final Meeting Time Confirmed!
-                        </h3>
-                        <p className="text-gray-600 mt-1">This poll is officially closed.</p>
-                    </div>
+        <div className="space-y-6">
+            <section className="rounded-2xl border border-border bg-card p-6 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <CalendarCheck className="h-6 w-6 text-primary" aria-hidden />
                 </div>
 
-                <div className="text-right flex flex-col items-center lg:items-end">
-                    <div className="flex items-end gap-2 text-3xl font-extrabold text-indigo-600">
-                        <Clock className="w-6 h-6 mb-1" />
-                        {finalTimeFormatted}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-500">
-                        {finalDateFormatted}
-                    </p>
-                </div>
-            </div>
+                <p className="text-sm font-medium text-muted-foreground">This poll is closed.</p>
 
-            <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Info className="w-4 h-4 text-indigo-500" />
-                    <span>Slot Duration: <span className="font-semibold">{poll.config.slotDuration} mins</span></span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-4 h-4 text-indigo-500" />
-                    <span>Total Participants: <span className="font-semibold">{poll.votes.length}</span></span>
-                </div>
-            </div>
+                {final ? (
+                    <>
+                        <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">
+                            {formatInZone(final, timezone)}
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                            {new Intl.DateTimeFormat('en-US', {
+                                weekday: 'long',
+                                month: 'long',
+                                day: 'numeric',
+                                timeZone: timezone,
+                            }).format(final)}
+                        </p>
+                        <p className="mt-3 text-xs text-muted-foreground">
+                            Times shown in {timezone.replace('_', ' ')}
+                        </p>
+                    </>
+                ) : (
+                    <p className="mt-2 text-muted-foreground">No final time was recorded.</p>
+                )}
+            </section>
 
-            <div className="pt-4 border-t border-gray-100">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Participant Details</h3>
-                <PollParticipants
-                    votes={poll.votes}
-                    currentVoterId={currentVoterId}
-                    isOwner={isOwner}
-                    onClearVote={onClearVote}
-                />
-            </div>
+            {final && (
+                <section className="rounded-2xl border border-border bg-card p-5">
+                    <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
+                        Available at this time ({attending.length} of {poll.votes.length})
+                    </h2>
+
+                    {attending.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            Nobody picked this slot while voting was open.
+                        </p>
+                    ) : (
+                        <ul className="flex flex-wrap gap-2">
+                            {attending.map((vote) => (
+                                <li
+                                    key={vote.voterId}
+                                    className="rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground"
+                                >
+                                    {vote.voterName}
+                                    {vote.voterId === currentVoterId && (
+                                        <span className="ml-1 text-xs text-muted-foreground">(you)</span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            )}
         </div>
     );
 }

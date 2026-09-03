@@ -1,79 +1,100 @@
-import { POST } from "@/app/api/polls/route";
-import { Poll } from "@/models/Poll";
-import { NextRequest } from "next/server";
+import { POST as createPoll } from '@/app/api/polls/route';
+import { Poll } from '@/models/Poll';
+import { ownerCookieName } from '@/lib/auth/tokens';
 
-jest.mock("@/lib/mongodb", () => ({
-  connectDB: jest.fn(),
-}));
+import { setUpTestDatabase, validConfig } from '../helpers/db';
 
-function createMockRequest(body: unknown): NextRequest {
-  return {
-    json: async () => body,
-    cookies: { get: () => undefined, getAll: () => [], set: () => {}, delete: () => {} },
-    nextUrl: { pathname: "/api/polls", search: "", href: "http://localhost/api/polls" } as unknown as URL,
-    body: null,
-    headers: new Headers(),
-    method: "POST",
-    url: "http://localhost/api/polls",
-  } as unknown as NextRequest;
-}
+setUpTestDatabase();
 
-describe("POST /api/polls integration tests", () => {
+const create = (body: unknown) =>
+    createPoll(
+        new Request('http://localhost/api/polls', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+        }),
+    );
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+describe('POST /api/polls', () => {
+    it('creates a poll and sets an owner cookie', async () => {
+        const response = await create({ title: 'Sprint review', config: validConfig });
+        const body = await response.json();
 
-  it("should create poll successfully and return 201", async () => {
-    const newPollData = {
-      title: "Valid Poll",
-      description: "Test Description",
-      ownerId: "mock-owner-id",
-      config: {
-        dailyStartTime: "09:00",
-        dailyEndTime: "18:00",
-        slotDuration: 30,
-        targetDates: ["2025-01-01"]
-      },
-    };
+        expect(response.status).toBe(201);
+        expect(body.pollId).toEqual(expect.any(String));
 
-    const mockCreatedPoll = {
-      ...newPollData,
-      _id: "mock-id-123",
-    };
+        const cookie = response.cookies.get(ownerCookieName(body.pollId));
+        expect(cookie?.value).toEqual(expect.any(String));
+        expect(cookie?.httpOnly).toBe(true);
+    });
 
-    jest.spyOn(Poll, 'create').mockResolvedValue(mockCreatedPoll as any);
+    it('stores the hash of the owner token, never the token', async () => {
+        const response = await create({ title: 'Sprint review', config: validConfig });
+        const { pollId } = await response.json();
+        const token = response.cookies.get(ownerCookieName(pollId))!.value;
 
-    const req = createMockRequest(newPollData);
+        const poll = await Poll.findById(pollId).lean();
 
-    const res = await POST(req);
-    const body = await res.json();
+        expect(poll!.ownerTokenHash).toHaveLength(64);
+        expect(poll!.ownerTokenHash).not.toBe(token);
+    });
 
-    if (res.status !== 201) {
-      console.log("API Error:", body);
-    }
+    it('keeps the time zone, without which the slots mean nothing', async () => {
+        const response = await create({ title: 'x', config: validConfig });
+        const { pollId } = await response.json();
 
-    expect(res.status).toBe(201);
-    expect(body.pollId).toBe("mock-id-123");
-    expect(body.message).toContain("Poll created successfully");
-  });
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.config.timezone).toBe('Asia/Baku');
+    });
 
-  it("should return 400 if title is missing", async () => {
-    const invalidData = {
-      description: "No title",
-      ownerId: "some-owner",
-      config: { targetDates: [] }
-    };
+    it('deduplicates and sorts the days', async () => {
+        const response = await create({
+            title: 'x',
+            config: { ...validConfig, targetDates: ['2027-03-11', '2027-03-10', '2027-03-11'] },
+        });
+        const { pollId } = await response.json();
 
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.config.targetDates).toEqual(['2027-03-10', '2027-03-11']);
+    });
 
-    jest.spyOn(Poll, 'create').mockRejectedValue(new Error("ValidationError"));
+    // This returned 500 before, so a user saw "Server error" for their own typo.
+    it('answers 400 for a date that does not exist', async () => {
+        const response = await create({
+            title: 'x',
+            config: { ...validConfig, targetDates: ['2027-02-31'] },
+        });
 
-    const req = createMockRequest(invalidData);
-    const res = await POST(req);
+        expect(response.status).toBe(400);
+    });
 
-    expect(res.status).toBe(400);
+    it.each([
+        ['a missing title', { config: validConfig }],
+        ['no days', { title: 'x', config: { ...validConfig, targetDates: [] } }],
+        ['an unknown time zone', { title: 'x', config: { ...validConfig, timezone: 'Mars/Olympus' } }],
+        ['an end before the start', { title: 'x', config: { ...validConfig, dailyEndTime: '08:00' } }],
+        ['a zero slot length', { title: 'x', config: { ...validConfig, slotDuration: 0 } }],
+        ['too many days', {
+            title: 'x',
+            config: {
+                ...validConfig,
+                targetDates: Array.from({ length: 61 }, (_, i) =>
+                    new Date(Date.UTC(2027, 2, 1 + i)).toISOString().slice(0, 10)),
+            },
+        }],
+    ])('answers 400 for %s', async (_label, body) => {
+        expect((await create(body)).status).toBe(400);
+    });
 
-    consoleSpy.mockRestore();
-  });
+    it('answers 400 for a body that is not JSON', async () => {
+        const response = await createPoll(
+            new Request('http://localhost/api/polls', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: 'not json',
+            }),
+        );
+
+        expect(response.status).toBe(400);
+    });
 });

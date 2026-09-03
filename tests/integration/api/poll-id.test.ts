@@ -1,73 +1,92 @@
+import { POST as createPoll } from '@/app/api/polls/route';
+import { GET as readPoll } from '@/app/api/polls/[id]/route';
+import { POST as castVote } from '@/app/api/polls/[id]/vote/route';
 
-import { GET } from "@/app/api/polls/[id]/route";
-import { Poll } from "@/models/Poll";
-import mongoose from "mongoose";
-import { NextRequest } from "next/server";
+import { setUpTestDatabase, validConfig, FIRST_SLOT } from '../helpers/db';
+import { jsonRequest, routeContext } from '../helpers/request';
 
-jest.mock("@/lib/mongodb", () => ({
-  connectDB: jest.fn(),
-}));
+setUpTestDatabase();
 
-describe("GET /api/polls/[id] integration tests", () => {
+async function makePoll() {
+    const response = await createPoll(
+        new Request('http://localhost/api/polls', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ title: 'Test poll', description: 'notes', config: validConfig }),
+        }),
+    );
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+    const { pollId } = await response.json();
+    return pollId as string;
+}
 
-  it("should return 400 for invalid ID format", async () => {
-    const context = {
-      params: Promise.resolve({ id: "12345" }),
-    };
+const read = (id: string) =>
+    readPoll(new Request(`http://localhost/api/polls/${id}`), routeContext(id));
 
-    const req = {} as NextRequest;
+describe('GET /api/polls/[id]', () => {
+    it('returns the poll', async () => {
+        const pollId = await makePoll();
 
-    const res = await GET(req, context);
-    const body = await res.json();
+        const response = await read(pollId);
+        const body = await response.json();
 
-    expect(res.status).toBe(400);
-    expect(body.message).toBe("Invalid Poll ID format.");
-  });
+        expect(response.status).toBe(200);
+        expect(body.title).toBe('Test poll');
+        expect(body.description).toBe('notes');
+        expect(body.config.timezone).toBe('Asia/Baku');
+        expect(body.status).toBe('open');
+    });
 
-  it("should return 404 when poll does not exist", async () => {
-    jest.spyOn(Poll, 'findById').mockResolvedValue(null);
+    // `ownerId` used to be part of this response, which is how anyone with the
+    // link could claim ownership.
+    it('exposes no ownership secrets', async () => {
+        const pollId = await makePoll();
 
-    const validId = new mongoose.Types.ObjectId().toString();
-    const context = {
-      params: Promise.resolve({ id: validId }),
-    };
+        const raw = JSON.stringify(await (await read(pollId)).json());
 
-    const req = {} as NextRequest;
+        expect(raw).not.toContain('ownerTokenHash');
+        expect(raw).not.toContain('ownerId');
+    });
 
-    const res = await GET(req, context);
-    const body = await res.json();
+    it('exposes no per-vote token hashes', async () => {
+        const pollId = await makePoll();
 
-    expect(res.status).toBe(404);
-    expect(body.message).toBe("Poll not found.");
-  });
+        await castVote(
+            jsonRequest(`/api/polls/${pollId}/vote`, 'POST', {
+                voterId: 'alice',
+                voterName: 'Alice',
+                selectedSlots: [FIRST_SLOT],
+            }),
+            routeContext(pollId),
+        );
 
-  it("should return poll by ID when exists", async () => {
-    const validId = new mongoose.Types.ObjectId().toString();
+        const body = await (await read(pollId)).json();
 
-    const mockPoll = {
-      _id: validId,
-      title: "Test poll",
-      description: "desc",
-      ownerId: "user1",
-    };
+        expect(body.votes).toHaveLength(1);
+        expect(JSON.stringify(body)).not.toContain('tokenHash');
+    });
 
-    jest.spyOn(Poll, 'findById').mockResolvedValue(mockPoll);
+    it('serialises slots as ISO strings', async () => {
+        const pollId = await makePoll();
 
-    const context = {
-      params: Promise.resolve({ id: validId }),
-    };
+        await castVote(
+            jsonRequest(`/api/polls/${pollId}/vote`, 'POST', {
+                voterId: 'alice',
+                voterName: 'Alice',
+                selectedSlots: [FIRST_SLOT],
+            }),
+            routeContext(pollId),
+        );
 
-    const req = {} as NextRequest;
+        const body = await (await read(pollId)).json();
+        expect(body.votes[0].selectedSlots).toEqual([FIRST_SLOT]);
+    });
 
-    const res = await GET(req, context);
-    const body = await res.json();
+    it('answers 404 for a poll that does not exist', async () => {
+        expect((await read('6a9966d6934caab5b155eee1')).status).toBe(404);
+    });
 
-    expect(res.status).toBe(200);
-    expect(body._id).toBe(validId);
-    expect(body.title).toBe("Test poll");
-  });
+    it('answers 400 for a malformed id', async () => {
+        expect((await read('not-an-id')).status).toBe(400);
+    });
 });

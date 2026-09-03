@@ -1,232 +1,247 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { IPoll } from '@/types/Poll';
-import generateSlots from "@/lib/utils/generate-slots";
-import {API_ROUTES} from "@/lib/routes";
+'use client';
 
-interface ScheduleDayGroup {
-    date: string;
-    fullDate: string;
-    slots: { time: string; fullIso: string; count: number; voters: string[] }[];
+import { useCallback, useMemo, useState } from 'react';
+
+import type { PublicPoll } from '@/lib/data/serialize';
+import { generateSlotsForDate, slotLabel } from '@/lib/time/slots';
+import { API_ROUTES } from '@/lib/routes';
+
+export interface SlotView {
+    iso: string;
+    /** Wall-clock time in the poll's zone, e.g. "14:30". */
+    label: string;
+    count: number;
+    voters: string[];
 }
 
-interface RankedSlot {
-    fullIso: string;
-    time: string;
+export interface DayView {
+    /** "YYYY-MM-DD" */
     date: string;
+    weekday: string;
+    dayLabel: string;
+    slots: SlotView[];
+}
+
+export interface RankedSlot {
+    iso: string;
+    label: string;
+    date: string;
+    weekday: string;
     count: number;
 }
 
-export function usePollManager(poll: IPoll, pollId: string, voterId: string, voterName: string | null) {
-    const [initialSelectedSlots, setInitialSelectedSlots] = useState<string[]>([]);
-    const [currentSelections, setCurrentSelections] = useState<string[]>([]);
+interface Args {
+    poll: PublicPoll;
+    pollId: string;
+    voterId: string;
+    voterName: string | null;
+    isOwner: boolean;
+}
 
-    const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
+async function send(url: string, method: 'POST' | 'DELETE', body: unknown) {
+    const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
 
-    const hasVoted = useMemo(() => poll.votes.some(v => v.voterId === voterId), [poll.votes, voterId]);
-    const isOwner = poll.ownerId === voterId;
+    if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message ?? 'Something went wrong. Please try again.');
+    }
 
-    const areSelectionsDifferent = useMemo(() => {
-        const currentSorted = [...currentSelections].sort().join(',');
-        const initialSorted = [...initialSelectedSlots].sort().join(',');
-        return currentSorted !== initialSorted;
-    }, [currentSelections, initialSelectedSlots]);
+    return response.json().catch(() => null);
+}
 
-    const scheduleData: ScheduleDayGroup[] = useMemo(() => {
-        const groups: ScheduleDayGroup[] = [];
-        poll.config.targetDates.forEach((dateInput) => {
-            const rawSlots = generateSlots(
-                dateInput,
-                poll.config.dailyStartTime,
-                poll.config.dailyEndTime,
-                poll.config.slotDuration
-            );
+export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Args) {
+    const [draft, setDraft] = useState<string[] | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
-            const processedSlots = rawSlots.map(slotIso => {
-                const votersForSlot = poll.votes.filter(v =>
-                    (v.selectedSlots as unknown as string[]).includes(slotIso)
-                );
+    const timezone = poll.config.timezone;
 
-                return {
-                    fullIso: slotIso,
-                    time: new Date(slotIso).toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }),
-                    count: votersForSlot.length,
-                    voters: votersForSlot.map(v => v.voterName)
-                };
+    const myVote = useMemo(
+        () => poll.votes.find((vote) => vote.voterId === voterId) ?? null,
+        [poll.votes, voterId],
+    );
+
+    const savedSelection = useMemo(() => myVote?.selectedSlots ?? [], [myVote]);
+
+    // While `draft` is null we show what the server has. The first click starts
+    // a draft, so an incoming realtime update cannot wipe unsaved choices.
+    const selection = draft ?? savedSelection;
+
+    const hasUnsavedChanges = useMemo(() => {
+        if (draft === null) return false;
+        if (draft.length !== savedSelection.length) return true;
+
+        const saved = new Set(savedSelection);
+        return draft.some((iso) => !saved.has(iso));
+    }, [draft, savedSelection]);
+
+    /**
+     * Slot → voters index.
+     *
+     * The old code filtered every vote with `.includes()` for every slot, on
+     * every render — days × slots × voters × slots-per-vote comparisons. At 60
+     * days and 50 participants that ran into tens of millions. The index is
+     * built once and lookups are constant time.
+     */
+    const votersBySlot = useMemo(() => {
+        const index = new Map<string, string[]>();
+
+        for (const vote of poll.votes) {
+            for (const iso of vote.selectedSlots) {
+                const existing = index.get(iso);
+                if (existing) existing.push(vote.voterName);
+                else index.set(iso, [vote.voterName]);
+            }
+        }
+
+        return index;
+    }, [poll.votes]);
+
+    const days: DayView[] = useMemo(() => {
+        const { dailyStartTime, dailyEndTime, slotDuration } = poll.config;
+
+        return poll.config.targetDates.map((date) => {
+            const slots = generateSlotsForDate(date, {
+                dailyStartTime,
+                dailyEndTime,
+                slotDuration,
+                timezone,
             });
 
-            groups.push({
-                date: new Date(dateInput).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
-                fullDate: new Date(dateInput).toISOString(),
-                slots: processedSlots
-            });
+            // Format the day name from the date string itself, pinned to UTC:
+            // "10 September" is the day in the poll's zone, not the viewer's.
+            const noon = new Date(`${date}T12:00:00Z`);
+
+            return {
+                date,
+                weekday: new Intl.DateTimeFormat('en-US', {
+                    weekday: 'long',
+                    timeZone: 'UTC',
+                }).format(noon),
+                dayLabel: new Intl.DateTimeFormat('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC',
+                }).format(noon),
+                slots: slots.map((slot) => {
+                    const iso = slot.toISOString();
+                    const voters = votersBySlot.get(iso) ?? [];
+
+                    return { iso, label: slotLabel(slot, timezone), count: voters.length, voters };
+                }),
+            };
         });
-        return groups;
-    }, [poll]);
+    }, [poll.config, timezone, votersBySlot]);
 
-    const maxVoteCount = useMemo(() => Math.max(
-        ...scheduleData.flatMap(d => d.slots.map(s => s.count)),
-        1
-    ), [scheduleData]);
-
-    const leaderboard = useMemo(() => {
-        const allSlots: { time: string; date: string; count: number; iso: string }[] = [];
-        scheduleData.forEach(day => {
-            day.slots.forEach(slot => {
-                if (slot.count > 0) {
-                    allSlots.push({ time: slot.time, date: day.date, count: slot.count, iso: slot.fullIso });
-                }
-            });
-        });
-        return allSlots.sort((a, b) => b.count - a.count).slice(0, 5);
-    }, [scheduleData]);
+    const maxVoteCount = useMemo(() => {
+        let max = 1;
+        for (const day of days) {
+            for (const slot of day.slots) {
+                if (slot.count > max) max = slot.count;
+            }
+        }
+        return max;
+    }, [days]);
 
     const rankedSlots: RankedSlot[] = useMemo(() => {
-        const all: RankedSlot[] = [];
-        scheduleData.forEach(day => {
-            day.slots.forEach(slot => {
+        const ranked: RankedSlot[] = [];
+
+        for (const day of days) {
+            for (const slot of day.slots) {
                 if (slot.count > 0) {
-                    all.push({
-                        fullIso: slot.fullIso,
-                        time: slot.time,
-                        date: day.date,
-                        count: slot.count
+                    ranked.push({
+                        iso: slot.iso,
+                        label: slot.label,
+                        date: day.dayLabel,
+                        weekday: day.weekday,
+                        count: slot.count,
                     });
                 }
-            });
-        });
-        return all.sort((a, b) => b.count - a.count);
-    }, [scheduleData]);
-
-
-    useEffect(() => {
-        if (!voterId) return;
-
-        const myVote = poll.votes.find(v => v.voterId === voterId);
-        const latestSlots = (myVote?.selectedSlots || []).map(slot =>
-            (slot instanceof Date) ? slot.toISOString() : slot
-        ) as string[];
-
-        const latestSorted = [...latestSlots].sort().join(',');
-        const initialSorted = [...initialSelectedSlots].sort().join(',');
-
-        if (latestSorted !== initialSorted) {
-            setInitialSelectedSlots(latestSlots);
-            setCurrentSelections(latestSlots);
+            }
         }
-    }, [voterId, poll.votes, initialSelectedSlots]);
 
-    const sendEmptyVote = useCallback(async (currId: string, currName: string) => {
+        return ranked.sort((a, b) => b.count - a.count || a.iso.localeCompare(b.iso));
+    }, [days]);
+
+    const toggleSlot = useCallback(
+        (iso: string) => {
+            setDraft((previous) => {
+                const base = previous ?? savedSelection;
+                return base.includes(iso) ? base.filter((s) => s !== iso) : [...base, iso];
+            });
+        },
+        [savedSelection],
+    );
+
+    const setSlots = useCallback(
+        (isos: string[], selected: boolean) => {
+            setDraft((previous) => {
+                const base = new Set(previous ?? savedSelection);
+                for (const iso of isos) {
+                    if (selected) base.add(iso);
+                    else base.delete(iso);
+                }
+                return [...base];
+            });
+        },
+        [savedSelection],
+    );
+
+    const resetDraft = useCallback(() => setDraft(null), []);
+
+    const saveVote = useCallback(async () => {
+        if (!voterId || !voterName || poll.status !== 'open') return;
+
+        setIsSaving(true);
         try {
-            await fetch(API_ROUTES.VOTE_POLL_API(pollId), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tempVoterId: currId, voterName: currName, selectedSlots: [] }),
+            await send(API_ROUTES.VOTE_POLL_API(pollId), 'POST', {
+                voterId,
+                voterName,
+                selectedSlots: selection,
             });
-        } catch (error) {
-            console.error(error);
+            // The saved state now comes back as the source of truth.
+            setDraft(null);
+        } finally {
+            setIsSaving(false);
         }
-    }, [pollId]);
+    }, [pollId, voterId, voterName, poll.status, selection]);
 
-    useEffect(() => {
-        if (voterId && voterName && !hasVoted) {
-            sendEmptyVote(voterId, voterName);
-        }
-    }, [voterId, voterName, hasVoted, sendEmptyVote]);
+    const clearVote = useCallback(
+        async (targetVoterId: string) => {
+            await send(API_ROUTES.VOTE_POLL_API(pollId), 'DELETE', { voterId: targetVoterId });
+            if (targetVoterId === voterId) setDraft(null);
+        },
+        [pollId, voterId],
+    );
 
-
-
-    const handleSlotClick = (iso: string) => {
-        setCurrentSelections(prev => prev.includes(iso) ? prev.filter(i => i !== iso) : [...prev, iso]);
-    };
-
-    const handleSendVotes = async () => {
-        if (poll.status !== 'open' || !voterId || !voterName) return;
-        try {
-            const response = await fetch(API_ROUTES.VOTE_POLL_API(pollId), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tempVoterId: voterId, voterName: voterName, selectedSlots: currentSelections }),
-            });
-            if (!response.ok) throw new Error('Failed');
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleClearVote = async (targetVoterId: string, targetVoterName: string) => {
-        try {
-            const response = await fetch(API_ROUTES.VOTE_POLL_API(pollId), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tempVoterId: targetVoterId, voterName: targetVoterName, selectedSlots: [] }),
-            });
-            if (!response.ok) throw new Error('Failed');
-            if (targetVoterId === voterId) setCurrentSelections([]);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const openFinalizeModal = () => setIsFinalizeModalOpen(true);
-    const closeFinalizeModal = () => setIsFinalizeModalOpen(false);
-
-    const confirmFinalizePoll = async (finalIso: string) => {
-        try {
-            const response = await fetch(API_ROUTES.FINALIZE_POLL_API(pollId), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: 'closed',
-                    finalDate: finalIso
-                }),
-            });
-
-            if (!response.ok) throw new Error('Failed to finalize poll');
-
-            setIsFinalizeModalOpen(false);
-        } catch (error) {
-            console.error("Error finalizing poll:", error);
-            alert("Failed to finalize poll. Please try again.");
-        }
-    };
-
-    const getSlotStyle = (count: number, iso: string): string => {
-        const isSelected = currentSelections.includes(iso);
-        const isInitiallySelected = initialSelectedSlots.includes(iso);
-        const isMarkedForDeletion = isInitiallySelected && !isSelected;
-        const isNewlyAdded = isSelected && !isInitiallySelected;
-
-        if (isNewlyAdded) return "bg-indigo-600 border-indigo-700 text-white shadow-lg ring-2 ring-indigo-300 ring-offset-1 transform scale-105 z-10";
-        if (isMarkedForDeletion) return "bg-red-50 border-red-200 text-red-800 opacity-60 hover:opacity-100 line-through decoration-red-500";
-        if (isInitiallySelected && isSelected) return "bg-blue-100 border-blue-300 text-blue-900 shadow-sm font-medium";
-        if (count === 0) return "bg-white border-gray-200 text-gray-400 hover:border-indigo-300 hover:bg-gray-50";
-
-        const intensity = count / maxVoteCount;
-        if (intensity < 0.3) return "bg-emerald-50 border-emerald-200 text-emerald-700 hover:border-emerald-300";
-        if (intensity < 0.7) return "bg-emerald-200 border-emerald-300 text-emerald-900 hover:border-emerald-400";
-        return "bg-emerald-500 border-emerald-600 text-white shadow-sm";
-    };
+    const finalizePoll = useCallback(
+        async (finalSlot: string) => {
+            await send(API_ROUTES.FINALIZE_POLL_API(pollId), 'POST', { finalSlot });
+        },
+        [pollId],
+    );
 
     return {
-        scheduleData,
-        leaderboard,
-        maxVoteCount,
+        days,
         rankedSlots,
+        maxVoteCount,
+        timezone,
 
         isOwner,
-        hasVoted,
-        currentSelections,
-        initialSelectedSlots,
-        areSelectionsDifferent,
+        hasVoted: myVote !== null,
+        selection,
+        savedSelection,
+        hasUnsavedChanges,
+        isSaving,
 
-        isFinalizeModalOpen,
-
-        handleSlotClick,
-        handleSendVotes,
-        handleClearVote,
-        openFinalizeModal,
-        closeFinalizeModal,
-        confirmFinalizePoll,
-        getSlotStyle
+        toggleSlot,
+        setSlots,
+        resetDraft,
+        saveVote,
+        clearVote,
+        finalizePoll,
     };
 }

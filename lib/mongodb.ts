@@ -5,48 +5,40 @@ import mongoose, { Mongoose } from 'mongoose';
 const MONGO_URI = process.env.MONGODB_URI ?? process.env.MONGO_URI;
 
 declare global {
-    var mongoose: {
+    var mongooseCache: {
         conn: Mongoose | null;
         promise: Promise<Mongoose> | null;
     };
 }
 
-let cached = global.mongoose;
+// Every cold start is a fresh process, but a warm one serves many requests —
+// so the connection has to be cached across them.
+const cached = global.mongooseCache ?? (global.mongooseCache = { conn: null, promise: null });
 
-if (!cached) {
-    cached = global.mongoose = { conn: null, promise: null };
-}
-
-export async function connectDB() {
-    if (cached.conn) {
-        console.log('MongoDB: Returning from cache.');
-        return cached.conn;
-    }
+export async function connectDB(): Promise<Mongoose> {
+    if (cached.conn) return cached.conn;
 
     if (!cached.promise) {
         if (!MONGO_URI) {
             throw new Error('MONGODB_URI environment variable is not defined!');
         }
 
-        const opts = {
+        cached.promise = mongoose.connect(MONGO_URI, {
             bufferCommands: false,
             // Default is 30s. When the cluster is unreachable — paused free
             // tier, IP access list — that is 30 seconds of a spinning page and
             // of serverless execution time per request.
             serverSelectionTimeoutMS: 5000,
-        };
-
-        cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {
-            return mongoose;
         });
-        console.log('MongoDB: Creating new connection...');
     }
 
     try {
         cached.conn = await cached.promise;
         return cached.conn;
-    } catch (e) {
+    } catch (error) {
+        // Keeping a rejected promise cached would make every later request in
+        // this process fail the same way, even after the database came back.
         cached.promise = null;
-        throw e;
+        throw error;
     }
 }

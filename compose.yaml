@@ -1,0 +1,83 @@
+# Local development. Nothing to do with production — the live site is on
+# Vercel with its database in Atlas.
+#
+#   docker compose up          start  (first run installs and builds once)
+#   docker compose down        stop
+#   docker compose down -v     wipe everything (node_modules, database, cache)
+#
+# Two decisions worth knowing about:
+#
+#   1. The database is a container, not Atlas, so development cannot write to
+#      the live site. It starts empty — create a poll and fill it yourself.
+#   2. node_modules and .next are named volumes rather than bind mounts. Every
+#      file operation between the Windows host and the container is expensive,
+#      and those two directories hold tens of thousands of small files.
+
+name: inmytime-dev
+
+services:
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    # node_modules lives in a volume, so npm ci only runs on the first start.
+    #
+    # The build before the dev server is not redundant. On a Windows bind mount,
+    # `next dev` cannot descend into a directory whose name contains brackets:
+    # /api/polls/[id] resolves, but /api/polls/[id]/vote and /finalize are never
+    # registered and answer 404 forever. Verified as a filesystem problem rather
+    # than a bundler one — the same tree served from the container's own disk
+    # works, and it happens under both Turbopack and webpack. `next build` uses
+    # a different scanner, finds everything, and leaves a complete manifest in
+    # .next that the dev server then honours. So: build once, then develop.
+    #
+    # Moving the working copy onto the Linux filesystem (WSL2) removes the need
+    # for this, and makes file watching work as well.
+    command: >
+      sh -c "[ -d node_modules/next ] || npm ci --no-audit --no-fund;
+             [ -f .next/server/app-paths-manifest.json ] || npm run build;
+             npm run dev -- --hostname 0.0.0.0"
+    ports:
+      - "3000:3000"
+    environment:
+      # Overrides env_file, so a stray Atlas URI in .env.local still cannot
+      # send development writes to the live database.
+      MONGODB_URI: mongodb://mongo:27017/inmytime
+      # A separate database for the test suite, so `npm test` never wipes what
+      # you were clicking through in the browser.
+      MONGO_TEST_URI: mongodb://mongo:27017/inmytime_test
+      NEXT_TELEMETRY_DISABLED: "1"
+      # inotify events do not cross the Windows bind mount. These help the
+      # watchers that honour them; Turbopack does not, so expect to need
+      # `docker compose restart web` after editing.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    env_file:
+      - path: .env.local
+        required: false
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    # The default WiredTiger cache claims half the host's RAM, which is
+    # pointless here.
+    command: ["--wiredTigerCacheSizeGB", "0.25"]
+    volumes:
+      - mongo_data:/data/db
+    # No published port: only the web service talks to it.
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  node_modules:
+  next_cache:
+  mongo_data:

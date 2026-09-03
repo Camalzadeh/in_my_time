@@ -3,6 +3,7 @@
 
 # Next.js Build Output
 /.next
+tsconfig.tsbuildinfo
 
 # Environment variables
 .env.*

@@ -1,23 +1,22 @@
 const config = {
-    preset: '@shelf/jest-mongodb',
-
     testEnvironment: 'node',
 
-    setupFiles: ["<rootDir>/tests/load_env.js"],
+    setupFiles: ['<rootDir>/tests/setup-env.js'],
 
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
     },
 
     transform: {
-        '^.+\\.(t|j)sx?$': ['@swc/jest'],
+        '^.+\.(t|j)sx?$': ['@swc/jest'],
     },
 
     roots: ['<rootDir>/tests'],
 
     testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/tests/**/*.spec.ts'],
 
-    watchPathIgnorePatterns: ['globalConfig'],
+    // Integration tests share one database, so they must not run concurrently.
+    maxWorkers: 1,
 };
 
 module.exports = config;

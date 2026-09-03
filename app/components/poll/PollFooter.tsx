@@ -1,119 +1,122 @@
-import React from 'react';
-import { MousePointerClick, Ban, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
-import type { IPoll } from '@/types/Poll';
+'use client';
 
-interface PollFooterProps {
-    voteCount: number;
-    pollStatus: IPoll['status'];
-    mySelectedSlotsCount: number;
-    onSendVotes: () => Promise<void>;
+import { Check, Loader2, Lock, Undo2 } from 'lucide-react';
 
-    isOwner: boolean;
-    hasVoterName: boolean;
+interface Props {
+    participantCount: number;
+    selectedCount: number;
     hasUnsavedChanges: boolean;
-    onFinalizePoll?: () => void;
+    hasName: boolean;
+    isSaving: boolean;
+    isOwner: boolean;
+    onSave: () => void;
+    onDiscard: () => void;
+    onFinalize: () => void;
+    onEnterName: () => void;
 }
 
 export default function PollFooter({
-                                       voteCount,
-                                       pollStatus,
-                                       mySelectedSlotsCount,
-                                       onSendVotes,
-                                       isOwner,
-                                       hasVoterName,
-                                       hasUnsavedChanges,
-                                       onFinalizePoll
-                                   }: PollFooterProps) {
-    const isPollOpen = pollStatus === 'open';
-
-    let buttonText = 'Select Time';
-    let buttonIcon = <MousePointerClick className="w-5 h-5" />;
-
-
-    const isSubmitDisabled = !isPollOpen || !hasVoterName || !hasUnsavedChanges;
-
-    if (!isPollOpen) {
-        buttonText = 'Poll Finalized';
-        buttonIcon = <CheckCircle2 className="w-5 h-5" />;
-    } else if (!hasVoterName) {
-        buttonText = 'Enter Name to Vote';
-    } else if (mySelectedSlotsCount > 0) {
-        buttonText = `Confirm ${mySelectedSlotsCount} Times`;
-    } else if (hasUnsavedChanges && mySelectedSlotsCount === 0) {
-        buttonText = 'Confirm Removal';
-        buttonIcon = <Trash2 className="w-5 h-5" />;
-    }
-
-    const statusConfig = isPollOpen
-        ? { text: 'Voting Active', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100' }
-        : { text: 'Voting Closed', color: 'text-gray-500', bg: 'bg-gray-100 border-gray-200' };
-
+    participantCount,
+    selectedCount,
+    hasUnsavedChanges,
+    hasName,
+    isSaving,
+    isOwner,
+    onSave,
+    onDiscard,
+    onFinalize,
+    onEnterName,
+}: Props) {
+    // Sticky on small screens: with a tall grid the save button would otherwise
+    // sit far below the slots the user just picked.
     return (
-        <div className="mt-6">
-            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100 relative overflow-hidden">
-
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-
-                    <div className="flex items-center gap-8 w-full lg:w-auto justify-center lg:justify-start">
-                        <div className="text-center lg:text-left">
-                            <div className="text-3xl font-extrabold text-gray-900 leading-none mb-1">{voteCount}</div>
-                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Participants</div>
+        <div className="sticky bottom-4 z-30 rounded-2xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-5 text-sm">
+                    <div>
+                        <div className="text-xl font-bold leading-none text-foreground">
+                            {participantCount}
                         </div>
-
-                        <div className="h-10 w-px bg-gray-200 hidden sm:block" />
-
-                        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${statusConfig.bg}`}>
-                            <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${isPollOpen ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                            <div>
-                                <div className={`text-sm font-bold ${statusConfig.color}`}>{statusConfig.text}</div>
-                                {isPollOpen && <div className="text-[10px] text-gray-500 font-medium leading-none">Real-time updates</div>}
-                            </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                            {participantCount === 1 ? 'participant' : 'participants'}
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                    <div className="h-8 w-px bg-border" aria-hidden />
 
-                        {isOwner && isPollOpen && (
-                            <button
-                                onClick={onFinalizePoll}
-                                className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 transition-all flex items-center justify-center gap-2 group"
-                            >
-                                <Ban className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                Finalize Poll
-                            </button>
-                        )}
+                    <div>
+                        <div className="text-xl font-bold leading-none text-foreground">
+                            {selectedCount}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                            {selectedCount === 1 ? 'slot picked' : 'slots picked'}
+                        </div>
+                    </div>
+                </div>
 
+                <div className="flex flex-wrap items-center gap-3">
+                    {isOwner && (
                         <button
-                            onClick={onSendVotes}
-                            disabled={isSubmitDisabled}
-                            className={`
-                                relative w-full sm:w-auto min-w-[200px] px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2.5 transition-all duration-200
-                                ${isSubmitDisabled
-                                ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
-                                : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
-                            }
-                            `}
+                            type="button"
+                            onClick={onFinalize}
+                            className="inline-flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                            {buttonIcon}
-                            <span>{buttonText}</span>
-                            {!isSubmitDisabled && <ArrowRight className="w-4 h-4 opacity-50" />}
+                            <Lock className="h-4 w-4" aria-hidden />
+                            Close poll
                         </button>
-                    </div>
+                    )}
+
+                    {hasUnsavedChanges && (
+                        <button
+                            type="button"
+                            onClick={onDiscard}
+                            disabled={isSaving}
+                            className="inline-flex h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            <Undo2 className="h-4 w-4" aria-hidden />
+                            Discard
+                        </button>
+                    )}
+
+                    {!hasName ? (
+                        <button
+                            type="button"
+                            onClick={onEnterName}
+                            className="inline-flex h-11 min-w-[11rem] items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                            Add your name
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={!hasUnsavedChanges || isSaving}
+                            className="inline-flex h-11 min-w-[11rem] items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                    Saving
+                                </>
+                            ) : hasUnsavedChanges ? (
+                                <>
+                                    <Check className="h-4 w-4" aria-hidden />
+                                    Save availability
+                                </>
+                            ) : (
+                                'Saved'
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {!hasVoterName && isPollOpen && (
-                <div className="mt-3 text-center animate-in fade-in slide-in-from-top-2">
-                    <p className="text-sm text-gray-500 flex items-center justify-center gap-1.5">
-                        <AlertCircle className="w-4 h-4 text-indigo-500" />
-                        Please enter your name above to start selecting times.
-                    </p>
-                </div>
+            {/* Announced to screen readers when it appears, so the unsaved state is not visual only. */}
+            {hasUnsavedChanges && (
+                <p role="status" className="mt-3 text-xs text-muted-foreground">
+                    You have unsaved changes.
+                </p>
             )}
         </div>
     );
 }
-
-import { Trash2 } from 'lucide-react';

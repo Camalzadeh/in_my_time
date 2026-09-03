@@ -1,94 +1,119 @@
+import { POST as createPoll } from '@/app/api/polls/route';
+import { POST as finalize } from '@/app/api/polls/[id]/finalize/route';
+import { POST as castVote } from '@/app/api/polls/[id]/vote/route';
+import { Poll } from '@/models/Poll';
+import { ownerCookieName } from '@/lib/auth/tokens';
 
-import { POST } from "@/app/api/polls/[id]/finalize/route";
-import { Poll } from "@/models/Poll";
-import mongoose from "mongoose";
-import { NextRequest } from "next/server";
+import { setUpTestDatabase, validConfig, FIRST_SLOT } from '../helpers/db';
+import { jsonRequest, routeContext } from '../helpers/request';
 
-jest.mock("@/lib/mongodb", () => ({
-  connectDB: jest.fn().mockResolvedValue(undefined),
-}));
+setUpTestDatabase();
 
-type ContextType = { params: Promise<{ id: string }> };
+async function makePoll() {
+    const response = await createPoll(
+        new Request('http://localhost/api/polls', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ title: 'Test poll', config: validConfig }),
+        }),
+    );
 
-function createMockRequest(body: unknown): NextRequest {
-  return {
-    json: async () => body,
-    cookies: { get: () => undefined, getAll: () => [], set: () => {}, delete: () => {} },
-    nextUrl: { pathname: "/", search: "", href: "http://localhost" } as unknown as URL,
-    body: null,
-    headers: new Headers(),
-    method: "POST",
-    url: "http://localhost",
-  } as unknown as NextRequest;
+    const { pollId } = await response.json();
+
+    return { pollId, ownerToken: response.cookies.get(ownerCookieName(pollId))!.value };
 }
 
-describe("POST /api/polls/[id]/finalize integration tests", () => {
+const close = (pollId: string, body: unknown, cookies: Record<string, string> = {}) =>
+    finalize(
+        jsonRequest(`/api/polls/${pollId}/finalize`, 'POST', body, cookies),
+        routeContext(pollId),
+    );
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+describe('POST /api/polls/[id]/finalize', () => {
+    // This is the hole the rewrite closed. There was no ownership check at all,
+    // and `ownerId` was published in the poll's JSON, so anyone with the link
+    // could close anyone's poll.
+    it('refuses to close the poll without the owner cookie', async () => {
+        const { pollId } = await makePoll();
 
-  it("returns 400 for invalid payload", async () => {
-    const req = createMockRequest({ status: "open", finalDate: null });
-    const context: ContextType = { params: Promise.resolve({ id: "valid-id" }) };
+        const response = await close(pollId, { finalSlot: FIRST_SLOT });
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        expect(response.status).toBe(403);
+        expect((await Poll.findById(pollId).lean())!.status).toBe('open');
+    });
 
-    expect(res.status).toBe(400);
-    expect(body.message).toContain("Invalid payload");
-  });
+    it('refuses a forged owner cookie', async () => {
+        const { pollId } = await makePoll();
 
-  it("returns 400 for invalid poll ID format", async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const response = await close(
+            pollId,
+            { finalSlot: FIRST_SLOT },
+            { [ownerCookieName(pollId)]: 'f'.repeat(32) },
+        );
 
-    jest.spyOn(Poll, 'findById').mockRejectedValue(new mongoose.Error.CastError('ObjectId', '12345', 'model'));
+        expect(response.status).toBe(403);
+    });
 
-    const req = createMockRequest({ status: "closed", finalDate: new Date().toISOString() });
-    const context: ContextType = { params: Promise.resolve({ id: "12345" }) };
+    it('closes the poll for the owner', async () => {
+        const { pollId, ownerToken } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        const response = await close(
+            pollId,
+            { finalSlot: FIRST_SLOT },
+            { [ownerCookieName(pollId)]: ownerToken },
+        );
 
-    expect(res.status).toBe(400);
-    expect(body.message).toBe("Invalid Poll ID format");
-    consoleSpy.mockRestore();
-  });
+        expect(response.status).toBe(200);
 
-  it("returns 404 when poll is missing", async () => {
-    jest.spyOn(Poll, 'findById').mockResolvedValue(null);
+        const poll = await Poll.findById(pollId).lean();
+        expect(poll!.status).toBe('finalized');
+        expect(poll!.finalTime!.toISOString()).toBe(FIRST_SLOT);
+    });
 
-    const req = createMockRequest({ status: "closed", finalDate: new Date().toISOString() });
-    const context: ContextType = { params: Promise.resolve({ id: new mongoose.Types.ObjectId().toString() }) };
+    it('rejects a second close with 409', async () => {
+        const { pollId, ownerToken } = await makePoll();
+        const cookies = { [ownerCookieName(pollId)]: ownerToken };
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        await close(pollId, { finalSlot: FIRST_SLOT }, cookies);
+        const second = await close(pollId, { finalSlot: FIRST_SLOT }, cookies);
 
-    expect(res.status).toBe(404);
-    expect(body.message).toBe("Poll not found");
-  });
+        expect(second.status).toBe(409);
+    });
 
-  it("finalizes poll successfully", async () => {
-    const validId = new mongoose.Types.ObjectId().toString();
-    const finalDate = new Date("2025-01-01T12:00:00.000Z").toISOString();
+    it('rejects a slot that is not part of the poll', async () => {
+        const { pollId, ownerToken } = await makePoll();
 
-    jest.spyOn(Poll, 'findById').mockResolvedValue({ _id: validId } as any);
+        const response = await close(
+            pollId,
+            { finalSlot: '2027-03-10T03:33:00.000Z' },
+            { [ownerCookieName(pollId)]: ownerToken },
+        );
 
-    jest.spyOn(Poll, 'findByIdAndUpdate').mockResolvedValue({
-      _id: validId,
-      status: 'finalized',
-      finalTime: finalDate,
-      updatedAt: new Date()
-    } as any);
+        expect(response.status).toBe(400);
+    });
 
-    const req = createMockRequest({ status: "closed", finalDate });
-    const context: ContextType = { params: Promise.resolve({ id: validId }) };
+    it('rejects a missing final slot with 400', async () => {
+        const { pollId, ownerToken } = await makePoll();
 
-    const res = await POST(req, context);
-    const body = await res.json();
+        const response = await close(pollId, {}, { [ownerCookieName(pollId)]: ownerToken });
 
-    expect(res.status).toBe(200);
-    expect(body.message).toBe("Poll finalized successfully");
-    expect(body.poll.status).toBe("finalized");
-  });
+        expect(response.status).toBe(400);
+    });
+
+    it('stops further voting once closed', async () => {
+        const { pollId, ownerToken } = await makePoll();
+
+        await close(pollId, { finalSlot: FIRST_SLOT }, { [ownerCookieName(pollId)]: ownerToken });
+
+        const response = await castVote(
+            jsonRequest(`/api/polls/${pollId}/vote`, 'POST', {
+                voterId: 'alice',
+                voterName: 'Alice',
+                selectedSlots: [FIRST_SLOT],
+            }),
+            routeContext(pollId),
+        );
+
+        expect(response.status).toBe(409);
+    });
 });

@@ -1,108 +1,87 @@
-import { Poll } from '@/models/Poll';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { Poll, LIMITS } from '@/models/Poll';
 
-const validConfig = {
-    targetDates: [new Date('2025-12-01T00:00:00Z')],
-    dailyStartTime: '09:00',
-    dailyEndTime: '17:00',
-    slotDuration: 30,
-};
+import { setUpTestDatabase, validConfig } from '../helpers/db';
 
-const validPollData = {
-    title: 'Project Meeting Poll',
-    ownerId: 'user-humbat-123',
+setUpTestDatabase();
+
+const validPoll = {
+    title: 'Project meeting',
+    ownerTokenHash: 'a'.repeat(64),
     config: validConfig,
-    availableDates: [new Date('2025-12-01T09:00:00Z'), new Date('2025-12-01T09:30:00Z')],
-    votes: [],
-    status: 'open',
 };
 
-let mongod: MongoMemoryServer;
+describe('Poll schema', () => {
+    it('saves a valid poll with sensible defaults', async () => {
+        const poll = await Poll.create(validPoll);
 
-describe('Poll Model Schema Validation Tests', () => {
-
-    beforeAll(async () => {
-        mongod = await MongoMemoryServer.create();
-
-        const uri = mongod.getUri();
-
-        await mongoose.connect(uri);
-    });
-
-    afterAll(async () => {
-        if (mongoose.connection.readyState !== 0) {
-            await mongoose.disconnect();
-        }
-        if (mongod) {
-            await mongod.stop();
-        }
-    });
-
-    afterEach(async () => {
-        const collections = mongoose.connection.collections;
-        for (const key in collections) {
-            const collection = collections[key];
-            await collection.deleteMany({});
-        }
-    });
-
-    it('should fail if a required field (title) is missing', async () => {
-        const invalidData = { ...validPollData, title: undefined };
-        const poll = new Poll(invalidData);
-
-        await expect(poll.validate()).rejects.toThrow(mongoose.Error.ValidationError);
-        await expect(poll.validate()).rejects.toThrow(/Path `title` is required/);
-    });
-
-    it('should fail if config is missing', async () => {
-        const invalidData = { ...validPollData, config: undefined };
-        const poll = new Poll(invalidData);
-
-        await expect(poll.validate()).rejects.toThrow(mongoose.Error.ValidationError);
-        await expect(poll.validate()).rejects.toThrow(/Path `config` is required/);
-    });
-
-
-    it('should fail if an embedded config field (slotDuration) is missing', async () => {
-        const invalidConfig = { ...validConfig, slotDuration: undefined };
-        const invalidData = { ...validPollData, config: invalidConfig };
-        const poll = new Poll(invalidData);
-
-        await expect(poll.validate()).rejects.toThrow(mongoose.Error.ValidationError);
-        await expect(poll.validate()).rejects.toThrow(/Path `slotDuration` is required/);
-    });
-
-
-    it('should apply default values on creation', async () => {
-        const minimalData = {
-            title: 'Minimal Poll',
-            ownerId: 'min-user',
-            config: validConfig,
-            availableDates: [new Date()],
-        };
-        const poll = new Poll(minimalData);
-
-        expect(poll.votes).toEqual([]);
         expect(poll.status).toBe('open');
+        expect(poll.votes).toEqual([]);
+        expect(poll.description).toBe('');
+        expect(poll.createdAt).toBeInstanceOf(Date);
     });
 
-    it('should fail if status is not one of the enum values', async () => {
-        const invalidData = { ...validPollData, status: 'invalid-status' };
-        const poll = new Poll(invalidData);
-
-        await expect(poll.validate()).rejects.toThrow(mongoose.Error.ValidationError);
-        await expect(poll.validate()).rejects.toThrow(/is not a valid enum value/);
+    it.each([
+        ['title', { ...validPoll, title: undefined }],
+        ['ownerTokenHash', { ...validPoll, ownerTokenHash: undefined }],
+        ['config', { ...validPoll, config: undefined }],
+        ['config.timezone', { ...validPoll, config: { ...validConfig, timezone: undefined } }],
+        ['config.targetDates', { ...validPoll, config: { ...validConfig, targetDates: undefined } }],
+    ])('requires %s', async (_field, data) => {
+        await expect(Poll.create(data)).rejects.toThrow();
     });
 
+    it('rejects a status outside the enum', async () => {
+        await expect(Poll.create({ ...validPoll, status: 'cancelled' })).rejects.toThrow();
+    });
 
-    it('should automatically set timestamps (createdAt, updatedAt) after saving', async () => {
-        const poll = new Poll(validPollData);
-        const savedPoll = await poll.save();
+    it('rejects a slot length outside the allowed range', async () => {
+        await expect(
+            Poll.create({ ...validPoll, config: { ...validConfig, slotDuration: 1 } }),
+        ).rejects.toThrow();
 
-        expect(savedPoll.createdAt).toBeInstanceOf(Date);
-        expect(savedPoll.updatedAt).toBeInstanceOf(Date);
+        await expect(
+            Poll.create({ ...validPoll, config: { ...validConfig, slotDuration: 10_000 } }),
+        ).rejects.toThrow();
+    });
 
-        expect(savedPoll.createdAt.getTime()).toBeLessThanOrEqual(Date.now());
+    it('rejects a title longer than the limit', async () => {
+        await expect(
+            Poll.create({ ...validPoll, title: 'x'.repeat(LIMITS.TITLE_MAX + 1) }),
+        ).rejects.toThrow();
+    });
+
+    it('stores days as strings, not instants', async () => {
+        const poll = await Poll.create(validPoll);
+
+        // A day is a day. Storing it as a Date is what made "the 10th" depend
+        // on whichever zone happened to be running the code.
+        expect(poll.config.targetDates).toEqual(['2027-03-10', '2027-03-11']);
+        expect(typeof poll.config.targetDates[0]).toBe('string');
+    });
+
+    it('requires every field of an embedded vote', async () => {
+        await expect(
+            Poll.create({
+                ...validPoll,
+                votes: [{ voterId: 'a', voterName: 'A' /* no tokenHash */ }],
+            }),
+        ).rejects.toThrow();
+    });
+
+    it('keeps vote slots as dates', async () => {
+        const poll = await Poll.create({
+            ...validPoll,
+            votes: [
+                {
+                    voterId: 'alice',
+                    voterName: 'Alice',
+                    tokenHash: 'b'.repeat(64),
+                    selectedSlots: [new Date('2027-03-10T05:00:00.000Z')],
+                },
+            ],
+        });
+
+        expect(poll.votes[0].selectedSlots[0]).toBeInstanceOf(Date);
+        expect(poll.votes[0].votedAt).toBeInstanceOf(Date);
     });
 });

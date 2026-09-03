@@ -15,30 +15,45 @@ jobs:
     if: |
       !contains(github.event.head_commit.message, '[no ci-cd]') &&
       !contains(github.event.head_commit.message, '[no ci]')
+
+    # The test suite talks to a real MongoDB. It used to start
+    # mongodb-memory-server instead, which downloads a mongod binary on every
+    # cold cache and has no build for Alpine — a service container is both
+    # faster and closer to production.
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      MONGO_TEST_URI: mongodb://127.0.0.1:27017/inmytime_test
+
     steps:
-      - name: 1. Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 2. Setup Node.js 20
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      - name: 3. Install Dependencies
-        run: npm ci --legacy-peer-deps
+      # No --legacy-peer-deps: @ably-labs/react-hooks was the only package that
+      # refused React 19, and it is gone.
+      - name: Install dependencies
+        run: npm ci
 
-      - name: 4. Run Lint & Run Tests
-        run : |
-          echo "Starting Linting..."
-          npm run lint
-          echo "Starting Unit & Integration Tests..."
-          npm run test -- --ci
-        env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      - name: Lint
+        run: npm run lint
 
-      - name: 5. Run Next.js Build Verification
+      - name: Test
+        run: npm test -- --ci
+
+      - name: Build
         run: npm run build
-        env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-

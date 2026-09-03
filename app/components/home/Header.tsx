@@ -1,73 +1,153 @@
-"use client";
-import { useState } from "react";
-import Link from "next/link";
-import { Calendar, Search, X } from "lucide-react";
-import { UI_PATHS } from "@/lib/routes";
-import HeaderSearch from "@/app/components/search/HeaderSearch";
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Calendar, Menu, Search, X } from 'lucide-react';
+
+import { UI_PATHS } from '@/lib/routes';
+import HeaderSearch from '@/app/components/search/HeaderSearch';
+import ThemeToggle from '@/app/components/ThemeToggle';
+
+const LINKS = [
+    { href: '#features', label: 'Features' },
+    { href: '#how-it-works', label: 'How it works' },
+];
 
 export default function Header() {
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    // Only one panel is open at a time; on a phone both would fill the screen.
+    const [panel, setPanel] = useState<'search' | 'menu' | null>(null);
+    const closeRef = useRef<HTMLButtonElement>(null);
+
+    // The panels used to have no way out but the close button — no Escape, and
+    // nothing moved focus into or out of them.
+    useEffect(() => {
+        if (!panel) return;
+
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setPanel(null);
+        };
+
+        document.addEventListener('keydown', onKey);
+        closeRef.current?.focus();
+
+        return () => document.removeEventListener('keydown', onKey);
+    }, [panel]);
 
     return (
-        <nav className="sticky top-0 z-50 border-b border-border/50 backdrop-blur-md bg-background/80">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    <Link href="/" className="flex items-center gap-2 shrink-0">
-                        <div
-                            className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-primary-foreground"/>
-                        </div>
-                        <span className="text-xl font-bold text-foreground">InMyTime</span>
+        <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="flex h-16 items-center justify-between gap-4">
+                    <Link
+                        href="/"
+                        className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
+                            <Calendar className="h-5 w-5 text-primary-foreground" aria-hidden />
+                        </span>
+                        <span className="text-lg font-bold text-foreground">InMyTime</span>
                     </Link>
 
-                    <div className="hidden md:flex items-center gap-8 ml-8">
-                        <a href="#features"
-                           className="text-sm text-foreground/60 hover:text-foreground transition-colors">
-                            Features
-                        </a>
-                        <a href="#how-it-works"
-                           className="text-sm text-foreground/60 hover:text-foreground transition-colors">
-                            How it Works
-                        </a>
+                    <div className="hidden items-center gap-6 md:flex">
+                        {LINKS.map((link) => (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className="rounded px-1 py-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                {link.label}
+                            </a>
+                        ))}
                     </div>
 
-
-                    <div className="flex items-center gap-4 sm:gap-8">
-                        <div className="hidden lg:block">
-                            <HeaderSearch/>
+                    <div className="flex items-center gap-2">
+                        <div className="hidden w-64 lg:block">
+                            <HeaderSearch />
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setPanel('search')}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            <Search className="h-4 w-4" aria-hidden />
+                            <span className="sr-only">Open a poll by ID</span>
+                        </button>
+
+                        <ThemeToggle />
 
                         <Link
                             href={UI_PATHS.CREATE_POLL}
-                            className="bg-primary text-primary-foreground px-6 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors shrink-0"
+                            className="hidden h-9 shrink-0 items-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         >
-                            Create Poll
+                            Create poll
                         </Link>
 
+                        {/* The section links were simply unreachable below md. */}
                         <button
-                            className="lg:hidden p-2 text-foreground/60 hover:text-foreground transition-colors"
-                            onClick={() => setIsSearchOpen(true)}
+                            type="button"
+                            onClick={() => setPanel('menu')}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                            <Search className="w-5 h-5"/>
+                            <Menu className="h-4 w-4" aria-hidden />
+                            <span className="sr-only">Open menu</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            {isSearchOpen && (
-                <div className="fixed inset-0 top-0 z-[60] bg-background lg:hidden p-4">
-                    <div className="flex items-center justify-between h-16 max-w-7xl mx-auto">
-                        <HeaderSearch />
-
+            {panel && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={panel === 'search' ? 'Open a poll by ID' : 'Menu'}
+                    className="fixed inset-0 z-[60] bg-background p-4"
+                >
+                    <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-foreground">
+                            {panel === 'search' ? 'Open a poll' : 'Menu'}
+                        </span>
                         <button
-                            className="p-2 ml-4 text-foreground/60 hover:text-foreground transition-colors shrink-0"
-                            onClick={() => setIsSearchOpen(false)}
+                            ref={closeRef}
+                            type="button"
+                            onClick={() => setPanel(null)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                            <X className="w-6 h-6"/>
+                            <X className="h-5 w-5" aria-hidden />
+                            <span className="sr-only">Close</span>
                         </button>
                     </div>
-                    <div className="pt-4 text-sm text-foreground/70">
-                        Enter the poll ID into the search field and press <strong>Enter</strong>.
+
+                    <div className="mx-auto mt-6 max-w-md">
+                        {panel === 'search' ? (
+                            <>
+                                <HeaderSearch autoFocus onDone={() => setPanel(null)} />
+                                <p className="mt-3 text-sm text-muted-foreground">
+                                    Paste the ID from a poll link — the part after{' '}
+                                    <code className="rounded bg-muted px-1 py-0.5 text-xs">/polls/</code>.
+                                </p>
+                            </>
+                        ) : (
+                            <div className="flex flex-col gap-1">
+                                {LINKS.map((link) => (
+                                    <a
+                                        key={link.href}
+                                        href={link.href}
+                                        onClick={() => setPanel(null)}
+                                        className="rounded-xl px-4 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    >
+                                        {link.label}
+                                    </a>
+                                ))}
+
+                                <Link
+                                    href={UI_PATHS.CREATE_POLL}
+                                    onClick={() => setPanel(null)}
+                                    className="mt-3 inline-flex h-12 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                >
+                                    Create poll
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
