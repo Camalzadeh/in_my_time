@@ -1,91 +1,88 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { BarChart3, CalendarDays, Vote, Sparkles } from 'lucide-react';
+'use client';
 
-interface ScheduleDayGroup {
-    date: string;
-    slots: { count: number }[];
-}
+import { useEffect, useState } from 'react';
+import { Globe, Info } from 'lucide-react';
 
-interface PollSidebarStatsProps {
+import type { DayView } from '@/lib/hooks/use-poll-manager';
+import { guessTimeZone } from '@/lib/time/zone';
+
+interface Props {
     slotDuration: number;
-    scheduleData: ScheduleDayGroup[];
+    timezone: string;
+    days: DayView[];
 }
 
-export default function PollSidebarStats({ slotDuration, scheduleData }: PollSidebarStatsProps) {
-    const totalVotes = scheduleData.flatMap(d => d.slots).reduce((acc, s) => acc + s.count, 0);
-
-    const mostPopularDay = scheduleData.length > 0
-        ? scheduleData.reduce((prev, current) => {
-            const currentTotal = current.slots.reduce((a, b) => a + b.count, 0);
-            const prevTotal = prev.slots ? prev.slots.reduce((a, b) => a + b.count, 0) : -1;
-            return currentTotal > prevTotal ? current : prev;
-        }).date
-        : 'N/A';
+export default function PollSidebarStats({ slotDuration, timezone, days }: Props) {
+    const best = days.reduce<{ label: string; count: number }>(
+        (winner, day) => {
+            const total = day.slots.reduce((sum, slot) => sum + slot.count, 0);
+            return total > winner.count
+                ? { label: `${day.weekday}, ${day.dayLabel}`, count: total }
+                : winner;
+        },
+        { label: '—', count: 0 },
+    );
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-6"
-        >
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 p-6 text-white shadow-xl shadow-indigo-200/50">
-                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
-                <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-purple-500/20 blur-3xl" />
+        <div className="space-y-4">
+            <section className="rounded-2xl border border-border bg-card p-5">
+                <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Info className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    How this works
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                    Pick <strong className="font-semibold text-foreground">every</strong> slot you
+                    could make, not just your favourite. Each one is {slotDuration} minutes. The
+                    darker a cell, the more people are free then.
+                </p>
+            </section>
 
-                <div className="relative z-10">
-                    <div className="mb-4 flex items-center gap-2 text-indigo-200">
-                        <div className="rounded-lg bg-white/10 p-1.5 backdrop-blur-sm">
-                            <Sparkles className="h-4 w-4 text-amber-300" />
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-wider">Poll Details</span>
+            <section className="rounded-2xl border border-border bg-card p-5">
+                <dl className="space-y-3 text-sm">
+                    <div className="flex items-baseline justify-between gap-3">
+                        <dt className="text-muted-foreground">Most popular day</dt>
+                        <dd className="text-right font-semibold text-foreground">{best.label}</dd>
                     </div>
-
-                    <h3 className="mb-2 text-lg font-bold">How it works</h3>
-                    <p className="text-sm leading-relaxed text-indigo-100/90">
-                        Each time slot is <span className="font-bold text-white bg-white/20 px-1 py-0.5 rounded">{slotDuration} min</span> long.
-                        Please select <strong>all</strong> the times you are available. The darker the green, the more people can make it!
-                    </p>
-                </div>
-            </div>
-
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-                <div className="mb-5 flex items-center gap-2.5 border-b border-gray-100 pb-4">
-                    <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
-                        <BarChart3 className="h-5 w-5" />
+                    <div className="flex items-baseline justify-between gap-3">
+                        <dt className="text-muted-foreground">Total picks</dt>
+                        <dd className="font-semibold tabular-nums text-foreground">
+                            {days.reduce(
+                                (sum, day) => sum + day.slots.reduce((s, slot) => s + slot.count, 0),
+                                0,
+                            )}
+                        </dd>
                     </div>
-                    <h4 className="font-bold text-gray-900">Stats Overview</h4>
-                </div>
+                </dl>
+            </section>
 
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-50 bg-gray-50/50 p-4 transition-colors hover:border-gray-100 hover:bg-gray-50">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100">
-                                <Vote className="h-5 w-5 text-indigo-500" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-medium text-gray-500 uppercase">Total Votes</p>
-                                <p className="text-lg font-bold text-gray-900 leading-none">{totalVotes}</p>
-                            </div>
-                        </div>
-                    </div>
+            <TimezoneNote pollTimezone={timezone} />
+        </div>
+    );
+}
 
-                    <div className="flex items-center justify-between rounded-2xl border border-gray-50 bg-gray-50/50 p-4 transition-colors hover:border-gray-100 hover:bg-gray-50">
-                        <div className="flex items-center gap-3 w-full">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-100">
-                                <CalendarDays className="h-5 w-5 text-emerald-500" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-gray-500 uppercase">Best Day</p>
-                                <p className="text-sm font-bold text-gray-900 truncate" title={mostPopularDay}>
-                                    {mostPopularDay}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </motion.div>
+/**
+ * Only shown when the viewer is somewhere else. Times on the page are written
+ * in the poll's zone, and silently showing them to someone in another zone is
+ * exactly the confusion this rewrite set out to remove.
+ */
+function TimezoneNote({ pollTimezone }: { pollTimezone: string }) {
+    // Resolved after mount: on the server this would report the server's zone
+    // and the markup would not match what the browser renders.
+    const [viewerTimezone, setViewerTimezone] = useState<string | null>(null);
+
+    useEffect(() => setViewerTimezone(guessTimeZone()), []);
+
+    if (!viewerTimezone || viewerTimezone === pollTimezone) return null;
+
+    return (
+        <section className="rounded-2xl border border-border bg-muted/40 p-4">
+            <h2 className="mb-1 flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                Times are shown in {pollTimezone.replace('_', ' ')}
+            </h2>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+                That is the poll&apos;s time zone, not yours ({viewerTimezone.replace('_', ' ')}).
+            </p>
+        </section>
     );
 }

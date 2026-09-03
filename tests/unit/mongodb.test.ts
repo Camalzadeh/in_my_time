@@ -6,13 +6,13 @@ jest.mock('mongoose', () => ({
 
 describe('connectDB', () => {
     const originalEnv = process.env;
-    const originalGlobal = global.mongoose;
+    const originalGlobal = global.mongooseCache;
 
     beforeEach(() => {
         jest.clearAllMocks();
         jest.resetModules();
 
-        global.mongoose = { conn: null, promise: null };
+        global.mongooseCache = { conn: null, promise: null };
 
         process.env = { ...originalEnv };
         delete process.env.MONGODB_URI;
@@ -20,12 +20,12 @@ describe('connectDB', () => {
 
     afterAll(() => {
         process.env = originalEnv;
-        global.mongoose = originalGlobal;
+        global.mongooseCache = originalGlobal;
     });
 
     it('should return cached connection if it exists', async () => {
         const mockConn = { connection: 'cached' };
-        global.mongoose = { conn: mockConn as unknown as null, promise: null };
+        global.mongooseCache = { conn: mockConn as unknown as null, promise: null };
 
         process.env.MONGO_URI = 'mongodb://localhost:27017/test';
 
@@ -101,6 +101,6 @@ describe('connectDB', () => {
 
         await expect(connectDB()).rejects.toThrow('Connection failed');
 
-        expect(global.mongoose.promise).toBeNull();
+        expect(global.mongooseCache.promise).toBeNull();
     });
 });

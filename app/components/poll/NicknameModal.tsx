@@ -1,107 +1,108 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { UserCircle2, Sparkles, ArrowRight, X } from 'lucide-react';
+'use client';
 
-interface NicknameModalProps {
+import { useEffect, useRef, useState } from 'react';
+
+import { LIMITS } from '@/models/Poll';
+
+interface Props {
     isOpen: boolean;
-    onClose: () => void;
+    initialName: string | null;
     onSave: (name: string) => void;
-    initialName?: string | null;
+    onClose: () => void;
+    /** False while a name is still required, so the dialog cannot be escaped. */
+    dismissible: boolean;
 }
 
-export default function NicknameModal({ isOpen, onClose, onSave, initialName }: NicknameModalProps) {
-    const [inputName, setInputName] = useState('');
-    const [isFocused, setIsFocused] = useState(false);
+export default function NicknameModal({ isOpen, initialName, onSave, onClose, dismissible }: Props) {
+    const [name, setName] = useState(initialName ?? '');
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (isOpen && initialName) {
-            setInputName(initialName);
-        } else if (isOpen) {
-            setInputName('');
+        if (isOpen) {
+            setName(initialName ?? '');
+            inputRef.current?.focus();
         }
     }, [isOpen, initialName]);
 
-    const handleSave = () => {
-        if (inputName.trim()) {
-            onSave(inputName.trim());
-            onClose();
-        }
-    };
+    useEffect(() => {
+        if (!isOpen || !dismissible) return;
+
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isOpen, dismissible, onClose]);
 
     if (!isOpen) return null;
 
+    const trimmed = name.trim();
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (trimmed) onSave(trimmed);
+    };
+
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={initialName ? onClose : undefined}
-                    className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+                className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+                onClick={dismissible ? onClose : undefined}
+                aria-hidden
+            />
 
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
-                >
-                    {initialName && (
-                        <button
-                            onClick={onClose}
-                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors z-20"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    )}
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="nickname-title"
+                className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl"
+            >
+                <h2 id="nickname-title" className="text-lg font-bold text-foreground">
+                    What should we call you?
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Other participants will see this name next to your picks.
+                </p>
 
-                    <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                    <div className="relative p-8">
-                        <div className="flex flex-col items-center text-center mb-8">
-                            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4 text-indigo-600 shadow-sm border border-indigo-100">
-                                <Sparkles className="w-8 h-8" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                {initialName ? 'Edit Profile' : 'Welcome!'}
-                            </h2>
-                            <p className="text-gray-500 text-sm leading-relaxed max-w-xs mx-auto">
-                                {initialName ? 'Update your display name for this poll.' : 'To start voting, please let us know who you are.'}
-                            </p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className={`relative group transition-all duration-300 ${isFocused ? 'scale-105' : ''}`}>
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <UserCircle2 className={`w-5 h-5 transition-colors ${isFocused ? 'text-indigo-600' : 'text-gray-400'}`} />
-                                </div>
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    placeholder="Enter your name"
-                                    value={inputName}
-                                    onChange={(e) => setInputName(e.target.value)}
-                                    onFocus={() => setIsFocused(true)}
-                                    onBlur={() => setIsFocused(false)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-indigo-500 rounded-xl text-gray-900 placeholder-gray-400 outline-none transition-all shadow-inner font-medium text-lg"
-                                />
-                            </div>
-
-                            <button
-                                onClick={handleSave}
-                                disabled={!inputName.trim()}
-                                className="w-full group relative flex items-center justify-center gap-2 py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0 overflow-hidden"
-                            >
-                                <span>{initialName ? 'Save Changes' : 'Continue'}</span>
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
+                <form onSubmit={submit} className="mt-4 space-y-4">
+                    <div>
+                        <label htmlFor="nickname" className="sr-only">
+                            Your name
+                        </label>
+                        <input
+                            ref={inputRef}
+                            id="nickname"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            maxLength={LIMITS.VOTER_NAME_MAX}
+                            autoComplete="nickname"
+                            placeholder="e.g. Alex"
+                            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        />
                     </div>
-                </motion.div>
+
+                    <div className="flex gap-3">
+                        {dismissible && (
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                Cancel
+                            </button>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={!trimmed}
+                            className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </form>
             </div>
-        </AnimatePresence>
+        </div>
     );
 }

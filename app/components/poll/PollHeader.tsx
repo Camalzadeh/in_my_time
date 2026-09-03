@@ -1,118 +1,156 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-    Clock,
-    Users,
-    Check,
-    Crown,
-    CalendarRange,
-    Link as LinkIcon,
-    Pencil
-} from 'lucide-react';
-import type { IPoll } from '@/types/Poll';
+import { useState } from 'react';
+import { Calendar, Check, Clock, Crown, Link as LinkIcon, Pencil, Users } from 'lucide-react';
 
-interface PollHeaderProps {
-    poll: IPoll;
+import type { PublicPoll } from '@/lib/data/serialize';
+import type { RealtimeStatus } from './PollRealtimeBridge';
+
+interface Props {
+    poll: PublicPoll;
     isOwner: boolean;
     voterName: string | null;
+    /** Null when realtime is not configured at all. */
+    realtimeStatus: RealtimeStatus | null;
     onEditName: () => void;
 }
 
-export default function PollHeader({ poll, isOwner, voterName, onEditName }: PollHeaderProps) {
-    const [copyStatus, setCopyStatus] = useState('idle');
+export default function PollHeader({ poll, isOwner, voterName, realtimeStatus, onEditName }: Props) {
+    const [copied, setCopied] = useState(false);
 
-    const handleCopyLink = () => {
-        const pollUrl = window.location.href;
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(pollUrl);
-        } else {
-            const textArea = document.createElement("textarea");
-            textArea.value = pollUrl;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard is blocked outside secure contexts; the URL bar still works.
         }
-        setCopyStatus('copied');
-        setTimeout(() => setCopyStatus('idle'), 2000);
     };
 
     const isOpen = poll.status === 'open';
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${isOpen ? 'text-emerald-600' : 'text-red-600'}`}>
-                            <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            {isOpen ? 'Open' : 'Closed'}
-                        </div>
+        <header className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <Badge tone={isOpen ? 'open' : 'closed'}>{isOpen ? 'Open' : 'Closed'}</Badge>
 
                         {isOwner && (
-                            <span className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-1">
-                                <Crown className="w-3 h-3" /> Owner
-                            </span>
+                            <Badge tone="owner">
+                                <Crown className="h-3 w-3" aria-hidden /> Owner
+                            </Badge>
                         )}
+
+                        {realtimeStatus && <RealtimeBadge status={realtimeStatus} />}
                     </div>
 
-                    <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-2 truncate">
-                        {poll.title}
-                    </h1>
+                    <h1 className="text-2xl font-bold leading-tight text-foreground">{poll.title}</h1>
 
                     {poll.description && (
-                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                            {poll.description}
-                        </p>
+                        <p className="mt-2 text-sm text-muted-foreground">{poll.description}</p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-medium">
-                        <div className="flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            <span>{poll.config.slotDuration}m slots</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <Users className="w-4 h-4 text-gray-400" />
-                            <span>{poll.votes.length} participants</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <CalendarRange className="w-4 h-4 text-gray-400" />
-                            <span>{poll.config.targetDates.length} days</span>
-                        </div>
-                    </div>
+                    <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                        <Fact icon={<Clock className="h-4 w-4" aria-hidden />} label="Slot length">
+                            {poll.config.slotDuration} min
+                        </Fact>
+                        <Fact icon={<Users className="h-4 w-4" aria-hidden />} label="Participants">
+                            {poll.votes.length}
+                        </Fact>
+                        <Fact icon={<Calendar className="h-4 w-4" aria-hidden />} label="Days">
+                            {poll.config.targetDates.length}
+                        </Fact>
+                    </dl>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 w-full md:w-auto mt-2 md:mt-0">
+                <div className="flex shrink-0 items-center gap-3">
                     <button
-                        onClick={handleCopyLink}
-                        className={`
-                            h-10 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all border w-full md:w-auto
-                            ${copyStatus === 'copied'
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }
-                        `}
+                        type="button"
+                        onClick={copyLink}
+                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                        {copyStatus === 'copied' ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
-                        {copyStatus === 'copied' ? 'Copied' : 'Share'}
+                        {copied ? (
+                            <Check className="h-4 w-4" aria-hidden />
+                        ) : (
+                            <LinkIcon className="h-4 w-4" aria-hidden />
+                        )}
+                        {copied ? 'Copied' : 'Share'}
                     </button>
 
                     {voterName && (
-                        <div className="flex flex-col items-end border-l border-gray-100 pl-4 ml-1">
-                            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Voting as</div>
+                        <div className="border-l border-border pl-3">
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                Voting as
+                            </div>
                             <button
+                                type="button"
                                 onClick={onEditName}
-                                className="group flex items-center gap-1.5 hover:bg-gray-50 px-2 py-1 -mr-2 rounded-lg transition-colors"
+                                className="group inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
-                                <span className="text-sm font-bold text-gray-900 truncate max-w-[120px]">{voterName}</span>
-                                <Pencil className="w-3 h-3 text-gray-400 group-hover:text-indigo-500" />
+                                <span className="max-w-[140px] truncate">{voterName}</span>
+                                <Pencil
+                                    className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-foreground"
+                                    aria-hidden
+                                />
+                                <span className="sr-only">Change your name</span>
                             </button>
                         </div>
                     )}
                 </div>
             </div>
+        </header>
+    );
+}
+
+function Fact({
+    icon,
+    label,
+    children,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-center gap-1.5">
+            {icon}
+            <dt className="sr-only">{label}</dt>
+            <dd>{children}</dd>
         </div>
+    );
+}
+
+function Badge({ tone, children }: { tone: 'open' | 'closed' | 'owner'; children: React.ReactNode }) {
+    const tones = {
+        open: 'bg-primary/10 text-primary',
+        closed: 'bg-muted text-muted-foreground',
+        owner: 'bg-accent/15 text-accent',
+    } as const;
+
+    return (
+        <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${tones[tone]}`}
+        >
+            {children}
+        </span>
+    );
+}
+
+function RealtimeBadge({ status }: { status: RealtimeStatus }) {
+    const copy = {
+        live: { label: 'Live', dot: 'bg-primary' },
+        connecting: { label: 'Connecting', dot: 'bg-muted-foreground animate-pulse' },
+        offline: { label: 'Offline', dot: 'bg-muted-foreground' },
+    } as const;
+
+    const { label, dot } = copy[status];
+
+    return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
+            {label}
+        </span>
     );
 }
