@@ -1,7 +1,7 @@
 # Local development. Nothing to do with production — the live site is on
 # Vercel with its database in Atlas.
 #
-#   docker compose up          start  (first run does npm ci, a few minutes)
+#   docker compose up          start  (first run installs and builds once)
 #   docker compose down        stop
 #   docker compose down -v     wipe everything (node_modules, database, cache)
 #
@@ -21,15 +21,21 @@ services:
     working_dir: /app
     # node_modules lives in a volume, so npm ci only runs on the first start.
     #
-    # --webpack, not Turbopack. On a Windows bind mount Turbopack never
-    # registers routes nested inside a bracketed directory: /api/polls/[id]
-    # resolves, but /api/polls/[id]/vote and /finalize return 404 forever, even
-    # after clearing .next. `next build` finds them, so it is a dev-server
-    # issue rather than a code one. Webpack enumerates them correctly, and it
-    # also honours the polling variables below.
+    # The build before the dev server is not redundant. On a Windows bind mount,
+    # `next dev` cannot descend into a directory whose name contains brackets:
+    # /api/polls/[id] resolves, but /api/polls/[id]/vote and /finalize are never
+    # registered and answer 404 forever. Verified as a filesystem problem rather
+    # than a bundler one — the same tree served from the container's own disk
+    # works, and it happens under both Turbopack and webpack. `next build` uses
+    # a different scanner, finds everything, and leaves a complete manifest in
+    # .next that the dev server then honours. So: build once, then develop.
+    #
+    # Moving the working copy onto the Linux filesystem (WSL2) removes the need
+    # for this, and makes file watching work as well.
     command: >
       sh -c "[ -d node_modules/next ] || npm ci --no-audit --no-fund;
-             npm run dev -- --webpack --hostname 0.0.0.0"
+             [ -f .next/server/app-paths-manifest.json ] || npm run build;
+             npm run dev -- --hostname 0.0.0.0"
     ports:
       - "3000:3000"
     environment:
@@ -40,9 +46,9 @@ services:
       # you were clicking through in the browser.
       MONGO_TEST_URI: mongodb://mongo:27017/inmytime_test
       NEXT_TELEMETRY_DISABLED: "1"
-      # inotify events do not cross the Windows bind mount, so the watcher has
-      # to poll. These are webpack's knobs, which is one reason dev runs with
-      # --webpack rather than Turbopack (see the note above the command).
+      # inotify events do not cross the Windows bind mount. These help the
+      # watchers that honour them; Turbopack does not, so expect to need
+      # `docker compose restart web` after editing.
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
     env_file:

@@ -59,7 +59,12 @@ docker compose up
 ```
 
 That brings up the dev server on <http://localhost:3000> together with its own MongoDB, so no
-database or connection string is needed. `docker compose down -v` removes everything it created.
+database or connection string is needed. The first start installs dependencies and runs one
+production build — see the note in [compose.yaml](compose.yaml) for why the build is needed.
+`docker compose down -v` removes everything it created.
+
+File watching does not cross a Windows bind mount, so after editing run
+`docker compose restart web` (about 7 seconds).
 
 Realtime is off unless you add an `ABLY_API_KEY` to `.env.local` — the site works either way.
 
@@ -371,9 +376,16 @@ the hash in the database is all the server keeps.
 **Times look an hour off.** Check `config.timezone` on the poll. Every slot is rendered in the
 poll's zone, not the viewer's, and the sidebar says which one when they differ.
 
-**A route nested under `/api/polls/[id]` 404s in development on Windows.** A Turbopack bug on
-bind-mounted volumes; `next build` finds those routes. [compose.yaml](compose.yaml) runs the dev
-server on webpack for this reason.
+**A route nested under `/api/polls/[id]` 404s in development on Windows.** `next dev` cannot
+descend into a directory whose name contains brackets when the source is on a Windows bind mount:
+`/api/polls/[id]` resolves, but `/api/polls/[id]/vote` and `/finalize` are never registered. It is
+the filesystem, not the bundler — the same tree served from the container's own disk works, and
+both Turbopack and webpack behave the same way.
+
+`next build` uses a different scanner and finds everything, so [compose.yaml](compose.yaml) runs a
+build once before starting the dev server; the manifest it leaves in `.next` is what makes the
+routes resolvable. If you hit this outside Docker, run `npm run build` once. Keeping the working
+copy on a Linux filesystem (WSL2) avoids it altogether and makes file watching work too.
 
 ---
 
