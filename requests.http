@@ -1,57 +1,93 @@
 @baseUrl = http://localhost:3000/api
 @contentType = application/json
-@pollId = 6929706508c6645b99b18675
-@voterId = 4f964a2f-1358-45a7-96a1-a481c4021200
-@voterName = AliceTestUser
 
-### Create New Poll (Initial Poll Setup)
+# Fill these in from a created poll. `pollId` comes back from the create call;
+# ownerToken is the value of the imt_o_<pollId> cookie that call sets.
+@pollId = 000000000000000000000000
+@ownerToken = 00000000000000000000000000000000
+@voterToken = 00000000000000000000000000000000
+@voterId = 4f964a2f-1358-45a7-96a1-a481c4021200
+@voterName = Alice
+
+### Create a poll
+# The response sets an httpOnly cookie, imt_o_<pollId>, which is the only proof
+# of ownership. There is no ownerId field any more: it used to be sent by the
+# browser and returned in the poll's public JSON, so anyone with the link could
+# claim it.
+#
+# targetDates are calendar days, not timestamps, and `timezone` decides what the
+# daily start and end times mean.
 
 POST {{baseUrl}}/polls
 Content-Type: {{contentType}}
 
 {
-  "title": "Weekly Team Meeting",
-  "description": "Please indicate your available times.",
-  "ownerId": "user_uuid_12345",
+  "title": "Weekly team meeting",
+  "description": "Mark every slot you could make.",
   "config": {
-    "targetDates": [
-      "2025-11-25T00:00:00.000Z",
-      "2025-11-26T00:00:00.000Z"
-    ],
+    "targetDates": ["2027-03-10", "2027-03-11"],
     "dailyStartTime": "09:00",
     "dailyEndTime": "17:00",
-    "slotDuration": 30
-  },
-  "availableDates": [
-    "2025-11-25T09:00:00.000Z",
-    "2025-11-25T09:30:00.000Z",
-    "2025-11-26T10:00:00.000Z"
-  ]
+    "slotDuration": 30,
+    "timezone": "Asia/Baku"
+  }
 }
 
-
-### Get Poll Details
+### Read a poll
+# Secrets are stripped: no ownerTokenHash, no per-vote tokenHash.
 
 GET {{baseUrl}}/polls/{{pollId}}
 
-### 🗳️ Vote/Update Vote (POST /api/poll/[pollId]/vote)
+### Does this poll exist?
+# 200, 404 or 400 with no body — backs the "open a poll by ID" box without
+# downloading the poll.
+
+HEAD {{baseUrl}}/polls/{{pollId}}
+
+### Cast or update a vote
+# selectedSlots must be slots this poll actually offers; anything else is a 400.
+# 09:00 in Asia/Baku (UTC+4) is 05:00 UTC.
+#
+# The first vote for a voterId sets an imt_v_<pollId> cookie. Later changes to
+# that vote need it — or the owner's cookie.
 
 POST {{baseUrl}}/polls/{{pollId}}/vote
 Content-Type: {{contentType}}
+Cookie: imt_v_{{pollId}}={{voterToken}}
 
 {
-  "tempVoterId": "{{voterId}}",
+  "voterId": "{{voterId}}",
   "voterName": "{{voterName}}",
   "selectedSlots": [
-    "2025-11-25T09:00:00.000Z",
-    "2025-11-26T10:00:00.000Z",
-    "2025-11-26T11:00:00.000Z",
-    "2025-11-26T12:00:00.000Z"
+    "2027-03-10T05:00:00.000Z",
+    "2027-03-10T05:30:00.000Z"
   ]
 }
 
+### Clear a vote
+# Your own with the voter cookie; anyone's with the owner cookie.
 
+DELETE {{baseUrl}}/polls/{{pollId}}/vote
+Content-Type: {{contentType}}
+Cookie: imt_v_{{pollId}}={{voterToken}}
 
-### Get Poll Details After Voting (To verify real-time update logic)
+{
+  "voterId": "{{voterId}}"
+}
 
-GET {{baseUrl}}/polls/{{pollId}}
+### Close the poll
+# Owner only. Without the cookie this is a 403 — it used to be unguarded.
+
+POST {{baseUrl}}/polls/{{pollId}}/finalize
+Content-Type: {{contentType}}
+Cookie: imt_o_{{pollId}}={{ownerToken}}
+
+{
+  "finalSlot": "2027-03-10T05:00:00.000Z"
+}
+
+### Ably token for the browser
+# 503 when ABLY_API_KEY is unset, which the client treats as "no realtime"
+# rather than an error.
+
+GET {{baseUrl}}/ably
