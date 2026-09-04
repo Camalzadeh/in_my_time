@@ -6,7 +6,7 @@ import { Check, Copy, ExternalLink, Loader2, Plus, Trash2, X } from 'lucide-reac
 import { toast } from 'sonner';
 
 import { API_ROUTES, UI_PATHS } from '@/lib/routes';
-import { LIMITS } from '@/models/Poll';
+import { LIMITS } from '@/lib/limits';
 import { guessTimeZone } from '@/lib/time/zone';
 import {
     expandDateRange,
@@ -179,7 +179,7 @@ export default function CreatePollForm() {
                                 type="date"
                                 value={singleDate}
                                 onChange={(event) => setSingleDate(event.target.value)}
-                                className={inputClass}
+                                className={`${inputClass} min-w-0 flex-1`}
                             />
                             <button
                                 type="button"
@@ -197,20 +197,20 @@ export default function CreatePollForm() {
                     </Field>
 
                     <Field label="Add a range" htmlFor="range-start">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <input
                                 id="range-start"
                                 type="date"
                                 value={rangeStart}
                                 onChange={(event) => setRangeStart(event.target.value)}
-                                className={inputClass}
+                                className={`${inputClass} min-w-0 flex-1`}
                                 aria-label="Range start"
                             />
                             <input
                                 type="date"
                                 value={rangeEnd}
                                 onChange={(event) => setRangeEnd(event.target.value)}
-                                className={inputClass}
+                                className={`${inputClass} min-w-0 flex-1`}
                                 aria-label="Range end"
                             />
                             <button
@@ -242,7 +242,7 @@ export default function CreatePollForm() {
                                 <button
                                     type="button"
                                     onClick={() => setDates((previous) => previous.filter((d) => d !== date))}
-                                    className="group inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium tabular-nums text-foreground transition-colors hover:border-destructive/40 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    className="group inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-xs font-medium tabular-nums text-foreground transition-colors hover:border-destructive/40 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                     {date}
                                     <X className="h-3 w-3 opacity-40 group-hover:opacity-100" aria-hidden />
@@ -286,7 +286,7 @@ export default function CreatePollForm() {
                                 aria-pressed={duration === minutes}
                                 className={
                                     duration === minutes
-                                        ? 'rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground'
+                                        ? 'inline-flex min-h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground'
                                         : chipClass
                                 }
                             >
@@ -302,7 +302,7 @@ export default function CreatePollForm() {
                             step={5}
                             value={duration}
                             onChange={(event) => setDuration(Number(event.target.value) || 0)}
-                            className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-center text-xs font-semibold tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="h-9 w-20 rounded-lg border border-border bg-background px-2 text-center text-base font-semibold tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
                             aria-label="Custom slot length in minutes"
                         />
                     </div>
@@ -421,14 +421,16 @@ function SuccessPanel({ pollId, onOpen }: { pollId: string; onOpen: () => void }
     );
 }
 
+// text-base on phones: iOS zooms the page whenever a focused field is under
+// 16px, and it never zooms back out.
 const inputClass =
-    'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'w-full rounded-xl border border-border bg-background px-3 py-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:py-2.5 sm:text-sm';
 
 const chipClass =
-    'rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'inline-flex min-h-9 items-center rounded-lg border border-border bg-background px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 const iconButtonClass =
-    'inline-flex shrink-0 items-center justify-center rounded-xl border border-border bg-background px-3 text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+    'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 function Section({
     title,

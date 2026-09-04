@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LIMITS } from '@/models/Poll';
+import { LIMITS } from '@/lib/limits';
 import { isValidTimeZone } from '@/lib/time/zone';
 import { parseCalendarDate, parseWallTime } from '@/lib/time/slots';
 

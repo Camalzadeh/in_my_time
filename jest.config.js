@@ -5,6 +5,11 @@ const config = {
 
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
+        // `server-only` throws unless it is loaded by the React Server
+        // Components runtime, which Jest is not. Its job is to fail the build
+        // when a client component imports a server module — that check belongs
+        // to `next build`, so here it is stubbed out.
+        '^server-only$': '<rootDir>/tests/stubs/server-only.js',
     },
 
     transform: {

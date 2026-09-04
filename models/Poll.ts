@@ -1,17 +1,16 @@
+// Importing this from a client component is a build error, not a runtime one.
+// A constant used to be exported from models/Poll.ts, a form imported it, and
+// mongoose came along for the ride — the page server-rendered fine and then
+// threw `Cannot read properties of undefined (reading 'Poll')` on hydration.
+import 'server-only';
+
 import mongoose, { Schema, Model, HydratedDocument } from 'mongoose';
 import type { IPoll, IVote, IPollConfig } from '@/types/Poll';
+import { LIMITS } from '@/lib/limits';
 
-// Limits. These must agree with the zod schemas in lib/validation.ts — zod is
-// what gives the user a readable message, these are the last line of defence.
-export const LIMITS = {
-    TITLE_MAX: 200,
-    DESCRIPTION_MAX: 2000,
-    DATES_MAX: 60,
-    VOTER_NAME_MAX: 60,
-    SLOTS_PER_VOTE_MAX: 2000,
-    SLOT_DURATION_MIN: 5,
-    SLOT_DURATION_MAX: 480,
-} as const;
+// The limits live in lib/limits.ts because forms need them too, and forms run
+// in the browser. zod (lib/validation.ts) is what turns a breach into a
+// readable message; the schema rules below are the last line of defence.
 
 const VoteSchema = new Schema<IVote>(
     {

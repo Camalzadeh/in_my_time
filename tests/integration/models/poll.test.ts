@@ -1,4 +1,5 @@
-import { Poll, LIMITS } from '@/models/Poll';
+import { Poll } from '@/models/Poll';
+import { LIMITS } from '@/lib/limits';
 
 import { setUpTestDatabase, validConfig } from '../helpers/db';
 

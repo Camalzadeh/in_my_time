@@ -1,3 +1,9 @@
+// Importing this from a client component is a build error, not a runtime one.
+// A constant used to be exported from models/Poll.ts, a form imported it, and
+// mongoose came along for the ride — the page server-rendered fine and then
+// threw `Cannot read properties of undefined (reading 'Poll')` on hydration.
+import 'server-only';
+
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import mongoose from 'mongoose';

@@ -52,8 +52,31 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test -- --ci
 
       - name: Build
         run: npm run build
+
+      # Status codes and unit tests both stayed green while /polls/create threw
+      # on hydration for every real visitor, because a client component pulled
+      # in the Mongoose model. Loading the pages in an actual browser is the
+      # only check that would have caught it — and the same run fails on a
+      # layout that overflows a phone screen.
+      - name: Check pages in a real browser
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/inmytime_browser
+        run: |
+          cp -r public .next/standalone/
+          cp -r .next/static .next/standalone/.next/
+          HOSTNAME=127.0.0.1 PORT=3000 node .next/standalone/server.js &
+          until curl -sf http://127.0.0.1:3000/ >/dev/null; do sleep 1; done
+
+          google-chrome --headless=new --remote-debugging-port=9222 --no-sandbox --disable-gpu --user-data-dir=/tmp/cdp about:blank &
+          until curl -sf http://127.0.0.1:9222/json/version >/dev/null; do sleep 1; done
+
+          node scripts/browser-check.mjs http://127.0.0.1:3000/ http://127.0.0.1:3000/polls/create
+          node scripts/browser-check.mjs --mobile http://127.0.0.1:3000/ http://127.0.0.1:3000/polls/create
