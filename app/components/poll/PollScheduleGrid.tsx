@@ -122,13 +122,13 @@ export default function PollScheduleGrid({
 
     return (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
                 <div
                     className="min-w-max select-none"
                     // Columns: a fixed gutter for the time labels, then one per day.
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: `4.5rem repeat(${days.length}, minmax(5.5rem, 1fr))`,
+                        gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(4.25rem, 1fr))`,
                     }}
                 >
                     {/* Header row */}
@@ -272,7 +272,7 @@ function Row({
                             onToggle(slot.iso);
                         }}
                         className={`
-                            relative flex h-11 items-center justify-center border-t border-l border-border
+                            relative flex h-12 items-center justify-center border-t border-l border-border sm:h-11
                             text-xs font-semibold tabular-nums transition-colors
                             focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset
                             disabled:pointer-events-none

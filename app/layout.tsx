@@ -1,8 +1,9 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import './globals.css';
 import Providers from './providers';
+import ServiceWorker from './components/ServiceWorker';
 
 // `next/font` generates its own family name, so the CSS has to point at the
 // variable it hands back. The old code assigned both fonts to unused variables
@@ -45,11 +46,31 @@ export const metadata: Metadata = {
         icon: [{ url: '/logo.png', type: 'image/png' }],
         apple: '/apple-icon.png',
     },
+    // iOS reads these rather than the manifest when adding to the home screen.
+    appleWebApp: {
+        capable: true,
+        title: 'InMyTime',
+        statusBarStyle: 'default',
+    },
     openGraph: {
         type: 'website',
         siteName: 'InMyTime',
         url: SITE_URL,
     },
+};
+
+// viewport-fit=cover lets the sticky save bar sit under the home indicator and
+// pad itself back out with env(safe-area-inset-*); without it iOS reserves the
+// space and the bar floats. maximumScale is deliberately absent — capping zoom
+// takes the page away from anyone who needs to enlarge it.
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#fafafa' },
+        { media: '(prefers-color-scheme: dark)', color: '#1f1f1f' },
+    ],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -67,6 +88,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                     Skip to content
                 </a>
                 <Providers>{children}</Providers>
+                <ServiceWorker />
             </body>
         </html>
     );

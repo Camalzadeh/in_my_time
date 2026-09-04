@@ -125,6 +125,8 @@ container, so a stray Atlas string in `.env.local` cannot send development write
 - Live updates through Ably, and a working site when Ably is not configured
 - Ownership proved by an httpOnly token, not by anything the browser claims
 - Light and dark themes, following the system by default
+- Installable on a phone: its own icon, no browser chrome, an offline notice
+- Built for a phone first — the grid pans, nothing overflows the screen
 - Shareable links with Open Graph previews
 
 ---
@@ -241,6 +243,7 @@ npm run test:unit   # pure functions, no database
 npm run test:int    # API and model tests, real MongoDB
 npm test            # both
 npm run smoke       # end-to-end over HTTP, against a running server
+npm run browser     # loads pages in a real browser (needs one on :9222)
 ```
 
 Integration tests talk to a real MongoDB: the container next to the app under Docker, and a
@@ -253,6 +256,26 @@ service container in CI. `tests/setup-env.js` points them at a scratch database
 
 [scripts/smoke.mjs](scripts/smoke.mjs) covers what only a real HTTP round trip can: that cookies
 are set and enforced, that secrets stay out of responses, and that a stranger cannot close a poll.
+
+[scripts/browser-check.mjs](scripts/browser-check.mjs) covers what only a real browser can. Start
+one with remote debugging, then point it at the pages:
+
+```bash
+msedge --headless=new --remote-debugging-port=9222 --user-data-dir=/tmp/cdp
+npm run browser -- http://localhost:3000/ http://localhost:3000/polls/create
+npm run browser -- --mobile http://localhost:3000/ http://localhost:3000/polls/create
+```
+
+It reports uncaught exceptions, console errors, and — with `--mobile`, at 390px — any layout
+wider than the screen. CI runs both passes against the standalone build.
+
+> This exists because of a bug nothing else caught. A form imported a constant from
+> `models/Poll.ts`, so Mongoose was evaluated in the browser and threw
+> `Cannot read properties of undefined (reading 'Poll')` during hydration. The page
+> server-rendered perfectly — `curl` saw a 200 and the right HTML, every test passed, the build
+> was green — while every real visitor to `/polls/create` got the error boundary. Server modules
+> now start with `import 'server-only'`, which turns that mistake into a build failure, and the
+> shared constants live in [lib/limits.ts](lib/limits.ts) with no imports at all.
 
 ---
 
@@ -317,9 +340,12 @@ in_my_time/
 │   │   └── search/         # "Open a poll by ID"
 │   ├── polls/[id]/         # Poll page + generateMetadata for link previews
 │   ├── polls/create/
+│   ├── components/SiteHeader.tsx    # One header on every page
+│   ├── components/ThemeToggle.tsx   # system / light / dark
 │   ├── error.tsx           # Error, empty and loading boundaries
 │   ├── loading.tsx
 │   ├── not-found.tsx
+│   ├── manifest.ts         # Web app manifest, so it installs on a phone
 │   ├── providers.tsx       # Theme provider and toaster
 │   └── globals.css         # Design tokens, light and dark
 ├── lib/
@@ -331,12 +357,16 @@ in_my_time/
 │   ├── poll-state.ts       # Realtime event reducer (pure)
 │   ├── realtime.ts         # Ably publishing
 │   └── validation.ts       # Zod schemas for every route
-├── models/                 # Mongoose schema and limits
+├── models/                 # Mongoose schema
+├── lib/limits.ts           # Field limits — no imports, so forms can use them
 ├── types/                  # Stored shapes
 ├── tests/
 │   ├── unit/               # Pure functions
 │   └── integration/        # Routes and model against a real MongoDB
-├── scripts/smoke.mjs       # End-to-end HTTP checks
+├── scripts/
+│   ├── smoke.mjs           # End-to-end HTTP checks
+│   └── browser-check.mjs   # Real-browser checks, desktop and mobile
+├── public/                 # Logo, app icons, service worker, offline page
 ├── compose.yaml            # Development: app + MongoDB
 ├── Dockerfile              # Production image for self-hosting
 └── .env.example

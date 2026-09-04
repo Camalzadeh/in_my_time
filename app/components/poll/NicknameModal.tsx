@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { LIMITS } from '@/models/Poll';
+import { LIMITS } from '@/lib/limits';
 
 interface Props {
     isOpen: boolean;
@@ -78,7 +78,7 @@ export default function NicknameModal({ isOpen, initialName, onSave, onClose, di
                             maxLength={LIMITS.VOTER_NAME_MAX}
                             autoComplete="nickname"
                             placeholder="e.g. Alex"
-                            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="w-full rounded-xl border border-border bg-background px-4 py-3.5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         />
                     </div>
 
