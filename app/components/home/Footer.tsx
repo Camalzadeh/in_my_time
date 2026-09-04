@@ -1,5 +1,5 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar } from 'lucide-react';
 
 import { UI_PATHS } from '@/lib/routes';
 
@@ -8,25 +8,34 @@ export default function Footer() {
     const year = new Date().getFullYear();
 
     return (
-        <footer className="border-t border-border bg-card/30 py-10">
+        <footer className="border-t border-border bg-card/30 py-8">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+                <div className="flex flex-col items-center gap-5 text-center md:flex-row md:justify-between md:text-left">
                     <Link
                         href="/"
-                        className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-accent">
-                            <Calendar className="h-3.5 w-3.5 text-primary-foreground" aria-hidden />
-                        </span>
-                        <span className="font-semibold text-foreground">InMyTime</span>
+                        <Image
+                            src="/branding.png"
+                            alt="InMyTime"
+                            width={600}
+                            height={200}
+                            className="h-5 w-auto"
+                        />
                     </Link>
 
-                    <nav className="flex gap-6 text-sm">
+                    <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                         <Link
                             href={UI_PATHS.CREATE_POLL}
                             className="rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             Create a poll
+                        </Link>
+                        <Link
+                            href="/#how-it-works"
+                            className="rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            How it works
                         </Link>
                         <a
                             href="https://github.com/Camalzadeh/in_my_time"

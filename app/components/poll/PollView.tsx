@@ -1,11 +1,9 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
-import ThemeToggle from '@/app/components/ThemeToggle';
+import SiteHeader from '@/app/components/SiteHeader';
 
 import type { PollPageData } from '@/lib/data/server/get-poll-data';
 import { applyPollEvent, type PollEvent } from '@/lib/poll-state';
@@ -83,111 +81,101 @@ export default function PollView({ pollId, data }: Props) {
     };
 
     return (
-        <main id="main" className="min-h-screen bg-background px-4 py-8">
-            {data.realtimeEnabled && (
-                <PollRealtimeBridge
-                    pollId={pollId}
-                    onEvent={handleEvent}
-                    onStatusChange={setRealtimeStatus}
-                />
-            )}
-
-            <NicknameModal
-                isOpen={isNameModalOpen || (isOpen && needsName)}
-                initialName={voterName}
-                onSave={(name) => {
-                    setVoterName(name);
-                    setNameModalOpen(false);
-                }}
-                onClose={() => setNameModalOpen(false)}
-                // The name is required to vote, so it cannot be dismissed until set.
-                dismissible={!needsName}
-            />
-
-            <FinalizePollModal
-                isOpen={isFinalizeOpen}
-                rankedSlots={manager.rankedSlots}
-                onClose={() => setFinalizeOpen(false)}
-                onConfirm={finalize}
-            />
-
-            <div className="mx-auto max-w-6xl space-y-6">
-                {/* These pages have no site header, so the theme control lives here. */}
-                <div className="flex items-center justify-between">
-                    <Link
-                        href="/"
-                        className="inline-flex items-center gap-2 rounded-lg px-2 py-1 -ml-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                        <ArrowLeft className="h-4 w-4" aria-hidden />
-                        Home
-                    </Link>
-
-                    <ThemeToggle />
-                </div>
-
-                <PollHeader
-                    poll={poll}
-                    isOwner={data.isOwner}
-                    voterName={voterName}
-                    realtimeStatus={data.realtimeEnabled ? realtimeStatus : null}
-                    onEditName={() => setNameModalOpen(true)}
-                />
-
-                {!isOpen ? (
-                    <FinalizedPollView
-                        poll={poll}
-                        currentVoterId={voterId}
-                        timezone={manager.timezone}
+        <>
+            <SiteHeader />
+            <main id="main" className="min-h-screen bg-background px-3 py-5 sm:px-4 sm:py-8">
+                {data.realtimeEnabled && (
+                    <PollRealtimeBridge
+                        pollId={pollId}
+                        onEvent={handleEvent}
+                        onStatusChange={setRealtimeStatus}
                     />
-                ) : (
-                    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-                        <div className="space-y-6 lg:col-span-8">
-                            <PollScheduleGrid
-                                days={manager.days}
-                                selection={manager.selection}
-                                maxVoteCount={manager.maxVoteCount}
-                                disabled={!voterName || manager.isSaving}
-                                timezone={manager.timezone}
-                                onToggle={manager.toggleSlot}
-                                onSetMany={manager.setSlots}
-                            />
-
-                            <PollFooter
-                                participantCount={poll.votes.length}
-                                selectedCount={manager.selection.length}
-                                hasUnsavedChanges={manager.hasUnsavedChanges}
-                                hasName={voterName !== null}
-                                isSaving={manager.isSaving}
-                                isOwner={data.isOwner}
-                                onSave={save}
-                                onDiscard={manager.resetDraft}
-                                onFinalize={() => setFinalizeOpen(true)}
-                                onEnterName={() => setNameModalOpen(true)}
-                            />
-
-                            <PollLeaderboard
-                                rankedSlots={manager.rankedSlots}
-                                maxVoteCount={manager.maxVoteCount}
-                            />
-                        </div>
-
-                        <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-6">
-                            <PollSidebarStats
-                                slotDuration={poll.config.slotDuration}
-                                timezone={manager.timezone}
-                                days={manager.days}
-                            />
-
-                            <PollParticipants
-                                votes={poll.votes}
-                                currentVoterId={voterId}
-                                isOwner={data.isOwner}
-                                onClearVote={clear}
-                            />
-                        </div>
-                    </div>
                 )}
-            </div>
-        </main>
+
+                <NicknameModal
+                    isOpen={isNameModalOpen || (isOpen && needsName)}
+                    initialName={voterName}
+                    onSave={(name) => {
+                        setVoterName(name);
+                        setNameModalOpen(false);
+                    }}
+                    onClose={() => setNameModalOpen(false)}
+                    // The name is required to vote, so it cannot be dismissed until set.
+                    dismissible={!needsName}
+                />
+
+                <FinalizePollModal
+                    isOpen={isFinalizeOpen}
+                    rankedSlots={manager.rankedSlots}
+                    onClose={() => setFinalizeOpen(false)}
+                    onConfirm={finalize}
+                />
+
+                <div className="mx-auto max-w-6xl space-y-6">
+                    <PollHeader
+                        poll={poll}
+                        isOwner={data.isOwner}
+                        voterName={voterName}
+                        realtimeStatus={data.realtimeEnabled ? realtimeStatus : null}
+                        onEditName={() => setNameModalOpen(true)}
+                    />
+
+                    {!isOpen ? (
+                        <FinalizedPollView
+                            poll={poll}
+                            currentVoterId={voterId}
+                            timezone={manager.timezone}
+                        />
+                    ) : (
+                        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+                            <div className="space-y-6 lg:col-span-8">
+                                <PollScheduleGrid
+                                    days={manager.days}
+                                    selection={manager.selection}
+                                    maxVoteCount={manager.maxVoteCount}
+                                    disabled={!voterName || manager.isSaving}
+                                    timezone={manager.timezone}
+                                    onToggle={manager.toggleSlot}
+                                    onSetMany={manager.setSlots}
+                                />
+
+                                <PollFooter
+                                    participantCount={poll.votes.length}
+                                    selectedCount={manager.selection.length}
+                                    hasUnsavedChanges={manager.hasUnsavedChanges}
+                                    hasName={voterName !== null}
+                                    isSaving={manager.isSaving}
+                                    isOwner={data.isOwner}
+                                    onSave={save}
+                                    onDiscard={manager.resetDraft}
+                                    onFinalize={() => setFinalizeOpen(true)}
+                                    onEnterName={() => setNameModalOpen(true)}
+                                />
+
+                                <PollLeaderboard
+                                    rankedSlots={manager.rankedSlots}
+                                    maxVoteCount={manager.maxVoteCount}
+                                />
+                            </div>
+
+                            <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-6">
+                                <PollSidebarStats
+                                    slotDuration={poll.config.slotDuration}
+                                    timezone={manager.timezone}
+                                    days={manager.days}
+                                />
+
+                                <PollParticipants
+                                    votes={poll.votes}
+                                    currentVoterId={voterId}
+                                    isOwner={data.isOwner}
+                                    onClearVote={clear}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </main>
+        </>
     );
 }
