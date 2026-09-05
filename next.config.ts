@@ -5,20 +5,10 @@ const nextConfig: NextConfig = {
     // Without it the Docker image has to carry the whole of node_modules.
     output: 'standalone',
 
-    async redirects() {
-        return [
-            // /home used to render a second copy of the landing page, which
-            // splits inbound links and leaves search engines choosing between
-            // two identical URLs.
-            //
-            // This was first done with `redirect()` inside app/home/page.tsx.
-            // That works in development but not in a production build: the
-            // route gets prerendered and ends up serving the landing page at
-            // /home with a 200, which is the duplicate it was meant to remove.
-            // Declaring it here makes it a real 308 at the edge.
-            { source: '/home', destination: '/', permanent: true },
-        ];
-    },
+    // /home used to redirect here, back when it was a second copy of the
+    // landing page. It now lists the visitor's own polls, so the redirect is
+    // gone; app/home/page.tsx carries `noindex` to keep the empty-handed
+    // fallback out of search, which is what the redirect was really protecting.
 };
 
 export default nextConfig;

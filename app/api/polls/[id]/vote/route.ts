@@ -14,6 +14,7 @@ import {
     ownerCookieName,
     voterCookieName,
     attachToken,
+    markHasPolls,
 } from '@/lib/auth/tokens';
 import { generateSlots } from '@/lib/time/slots';
 
@@ -166,6 +167,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
         if (issuedToken) {
             attachToken(response, voterCookieName(pollId), issuedToken);
         }
+
+        // So the landing page can offer this person their own polls. Not a
+        // credential: /home is still assembled from the tokens above.
+        markHasPolls(response);
 
         return response;
     } catch (error) {

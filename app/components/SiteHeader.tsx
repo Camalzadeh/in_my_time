@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, Plus, Search, X } from 'lucide-react';
+import { LayoutGrid, Menu, Plus, Search, X } from 'lucide-react';
 
 import { UI_PATHS } from '@/lib/routes';
+import { useHasPolls } from '@/lib/hooks/use-has-polls';
 import HeaderSearch from '@/app/components/search/HeaderSearch';
 import ThemeToggle from '@/app/components/ThemeToggle';
 
@@ -17,6 +18,11 @@ import ThemeToggle from '@/app/components/ThemeToggle';
 //
 // The create button is visible at every width. It was hidden below 640px,
 // which on a phone left the primary action of the whole site behind a hamburger.
+//
+// "My polls" appears once this browser has something to show there. Offering it
+// to a first-time visitor would lead to a page listing nothing, and hiding it
+// from everyone leaves the only index of your own polls unreachable unless you
+// happen to type /home.
 
 const SECTIONS = [
     { href: '/#features', label: 'Features' },
@@ -26,6 +32,7 @@ const SECTIONS = [
 export default function SiteHeader({ showSections = false }: { showSections?: boolean }) {
     const [panel, setPanel] = useState<'search' | 'menu' | null>(null);
     const closeRef = useRef<HTMLButtonElement>(null);
+    const hasPolls = useHasPolls();
 
     useEffect(() => {
         if (!panel) return;
@@ -46,6 +53,10 @@ export default function SiteHeader({ showSections = false }: { showSections?: bo
         };
     }, [panel]);
 
+    // The menu holds whatever does not fit on a phone. With neither section
+    // links nor a poll list there is nothing in it, so it is not rendered.
+    const hasMenu = showSections || hasPolls;
+
     return (
         <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
             <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6 lg:px-8">
@@ -63,9 +74,9 @@ export default function SiteHeader({ showSections = false }: { showSections?: bo
                     />
                 </Link>
 
-                {showSections && (
-                    <nav className="ml-4 hidden items-center gap-5 md:flex">
-                        {SECTIONS.map((section) => (
+                <nav className="ml-4 hidden items-center gap-5 md:flex">
+                    {showSections &&
+                        SECTIONS.map((section) => (
                             <Link
                                 key={section.href}
                                 href={section.href}
@@ -74,8 +85,17 @@ export default function SiteHeader({ showSections = false }: { showSections?: bo
                                 {section.label}
                             </Link>
                         ))}
-                    </nav>
-                )}
+
+                    {hasPolls && (
+                        <Link
+                            href={UI_PATHS.HOME}
+                            className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            <LayoutGrid className="h-4 w-4" aria-hidden />
+                            My polls
+                        </Link>
+                    )}
+                </nav>
 
                 <div className="ml-auto flex items-center gap-1 sm:gap-2">
                     <div className="hidden w-56 lg:block xl:w-64">
@@ -102,7 +122,7 @@ export default function SiteHeader({ showSections = false }: { showSections?: bo
                         <span className="sm:hidden">New</span>
                     </Link>
 
-                    {showSections && (
+                    {hasMenu && (
                         <IconButton
                             label="Open menu"
                             onClick={() => setPanel('menu')}
@@ -136,21 +156,36 @@ export default function SiteHeader({ showSections = false }: { showSections?: bo
                                 <HeaderSearch autoFocus onDone={() => setPanel(null)} />
                                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                                     Paste the ID from a poll link — the part after{' '}
-                                    <code className="rounded bg-muted px-1 py-0.5 text-xs">/polls/</code>.
+                                    <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                                        /polls/
+                                    </code>
+                                    .
                                 </p>
                             </>
                         ) : (
                             <nav className="flex flex-col gap-1">
-                                {SECTIONS.map((section) => (
+                                {hasPolls && (
                                     <Link
-                                        key={section.href}
-                                        href={section.href}
+                                        href={UI_PATHS.HOME}
                                         onClick={() => setPanel(null)}
-                                        className="rounded-xl px-4 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        className="inline-flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-base font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     >
-                                        {section.label}
+                                        <LayoutGrid className="h-4 w-4" aria-hidden />
+                                        My polls
                                     </Link>
-                                ))}
+                                )}
+
+                                {showSections &&
+                                    SECTIONS.map((section) => (
+                                        <Link
+                                            key={section.href}
+                                            href={section.href}
+                                            onClick={() => setPanel(null)}
+                                            className="rounded-xl px-4 py-3.5 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
+                                            {section.label}
+                                        </Link>
+                                    ))}
                             </nav>
                         )}
                     </div>

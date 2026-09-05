@@ -3,7 +3,13 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { Poll } from '@/models/Poll';
 import { createPollSchema, firstIssue } from '@/lib/validation';
-import { createToken, hashToken, ownerCookieName, attachToken } from '@/lib/auth/tokens';
+import {
+    createToken,
+    hashToken,
+    ownerCookieName,
+    attachToken,
+    markHasPolls,
+} from '@/lib/auth/tokens';
 
 export async function POST(request: Request) {
     let body: unknown;
@@ -46,6 +52,10 @@ export async function POST(request: Request) {
         );
 
         attachToken(response, ownerCookieName(pollId), ownerToken);
+
+        // Lets the landing page offer a link to /home. Carries no authority of
+        // its own — the list there is still built from the token above.
+        markHasPolls(response);
 
         return response;
     } catch (error) {
