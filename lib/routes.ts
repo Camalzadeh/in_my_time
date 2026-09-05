@@ -10,4 +10,5 @@ export const API_ROUTES = {
     POLL_DETAIL_API: (id: string) => `/api/polls/${id}`,
     VOTE_POLL_API: (id: string) => `/api/polls/${id}/vote`,
     FINALIZE_POLL_API: (id: string) => `/api/polls/${id}/finalize`,
+    FORGET_POLL_API: (id: string) => `/api/polls/${id}/forget`,
 };

@@ -3,6 +3,7 @@ import { CalendarCheck, CalendarDays, Clock, Crown, Plus, Users, Vote } from 'lu
 
 import type { MyPolls, PollSummary } from '@/lib/data/server/get-my-polls';
 import { UI_PATHS } from '@/lib/routes';
+import PollCardActions from './PollCardActions';
 import { zoneCityName } from '@/lib/time/zone';
 
 // The page someone lands on once they have polls of their own.
@@ -33,10 +34,12 @@ function PollCard({ poll }: { poll: PollSummary }) {
     const isOpen = poll.status === 'open';
 
     return (
-        <li>
+        // The actions sit outside the link: a button inside an anchor is
+        // invalid, and clicking Delete must not also open the poll.
+        <li className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-ring/50">
             <Link
                 href={UI_PATHS.POLL_DETAIL(poll.id)}
-                className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-colors hover:border-ring/50 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex flex-1 flex-col p-5 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
             >
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span
@@ -101,6 +104,8 @@ function PollCard({ poll }: { poll: PollSummary }) {
                     </p>
                 )}
             </Link>
+
+            <PollCardActions pollId={poll.id} isOwner={poll.isOwner} />
         </li>
     );
 }

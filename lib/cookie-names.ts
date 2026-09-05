@@ -11,3 +11,6 @@ export const VOTER_COOKIE_PREFIX = 'imt_v_';
 
 /** Readable by page script, unlike the two above. Grants nothing. */
 export const HAS_POLLS_COOKIE = 'imt_seen';
+
+/** 180 days, the same life the tokens themselves get. */
+export const HAS_POLLS_MAX_AGE = 60 * 60 * 24 * 180;
