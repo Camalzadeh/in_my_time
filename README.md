@@ -155,7 +155,7 @@ the React 19 peer conflict that forced `--legacy-peer-deps` on every install.
 
 ## Usage
 
-1. Create a poll: pick the days, the daily window, the slot length and the time zone
+1. Create a poll: pick the days, the daily window and the slot length
 2. Share the link — the creator's browser keeps the ownership cookie
 3. Everyone marks the slots they could make, each seeing the grid in their own zone
 4. Close the poll on the winning time
@@ -171,6 +171,12 @@ clearing browser data clears it.
 A poll stores its own zone in `config.timezone` (an IANA name such as `Asia/Baku`), and that is
 what its daily start and end times refer to. Slots are computed from wall-clock time in that zone
 and stored as UTC instants.
+
+**The form does not ask for a zone.** It takes the creator's own and says so, with the poll's
+first slot shown twice as a worked example. Everyone else picks from the same moments anyway, so
+the question was a decision on the way to making a poll that almost nobody needed to answer. A
+disclosure behind "Not where you are?" still sets it, for a device on the wrong zone or an event
+being arranged in another city.
 
 **Reading is separate from writing.** The grid is rebuilt for whoever is looking at it, in their
 own zone by default. A bar above it names the zone in use and switches to the poll's own, or any
