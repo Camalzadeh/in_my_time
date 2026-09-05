@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 import { UI_PATHS } from '@/lib/routes';
+import MyPollsLink from './MyPollsLink';
 
 export default function CtaSection() {
     return (
@@ -21,6 +22,13 @@ export default function CtaSection() {
                     Create a poll
                     <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
+
+                {/* Someone who reached the bottom of the page and already has
+                    polls is being asked to make another one. Offer the other
+                    thing too. */}
+                <div>
+                    <MyPollsLink variant="cta" />
+                </div>
             </div>
         </section>
     );

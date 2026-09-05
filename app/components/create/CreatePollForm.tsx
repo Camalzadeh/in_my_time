@@ -2,12 +2,17 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, ExternalLink, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, Globe, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { API_ROUTES, UI_PATHS } from '@/lib/routes';
 import { LIMITS } from '@/lib/limits';
-import { guessTimeZone } from '@/lib/time/zone';
+import {
+    formatInZone,
+    guessTimeZone,
+    zoneCityName,
+    zoneOffsetLabel,
+} from '@/lib/time/zone';
 import {
     expandDateRange,
     generateSlotsForDate,
@@ -17,6 +22,10 @@ import {
 } from '@/lib/time/slots';
 
 const DURATION_PRESETS = [15, 30, 60] as const;
+
+// Tried in order for the worked example below; the first one whose clock
+// differs from the creator's is used.
+const COMPARISON_ZONES = ['Europe/Paris', 'America/New_York', 'Asia/Tokyo', 'UTC'] as const;
 
 export default function CreatePollForm() {
     const router = useRouter();
@@ -36,6 +45,8 @@ export default function CreatePollForm() {
     // Resolved after mount so the server and the browser render the same markup.
     const [timezone, setTimezone] = useState('UTC');
     useEffect(() => setTimezone(guessTimeZone()), []);
+
+    const [isZonePickerOpen, setZonePickerOpen] = useState(false);
 
     const [isSubmitting, setSubmitting] = useState(false);
     const [createdId, setCreatedId] = useState<string | null>(null);
@@ -75,6 +86,25 @@ export default function CreatePollForm() {
     }, [dates, startTime, endTime, duration, timezone]);
 
     const totalSlots = preview.length * dates.length;
+
+    // A worked example beats a rule, so once there is a real slot the same
+    // instant is shown twice. The comparison city has to be somewhere the clock
+    // actually differs, or the example proves nothing.
+    const example = useMemo(() => {
+        const slot = preview[0];
+        if (!slot) return null;
+
+        const elsewhere = COMPARISON_ZONES.find(
+            (zone) => formatInZone(slot, zone) !== formatInZone(slot, timezone),
+        );
+        if (!elsewhere) return null;
+
+        return {
+            here: formatInZone(slot, timezone),
+            there: formatInZone(slot, elsewhere),
+            city: zoneCityName(elsewhere),
+        };
+    }, [preview, timezone]);
 
     const submit = async (event: FormEvent) => {
         event.preventDefault();
@@ -321,29 +351,72 @@ export default function CreatePollForm() {
                     </div>
                 </Field>
 
-                <Field
-                    label="Time zone"
-                    htmlFor="timezone"
-                    hint="Times you pick are written in this zone"
-                >
-                    <select
-                        id="timezone"
-                        value={timezone}
-                        onChange={(event) => setTimezone(event.target.value)}
-                        className={inputClass}
-                    >
-                        {zones.map((zone) => (
-                            <option key={zone} value={zone}>
-                                {zone.replace('_', ' ')}
-                            </option>
-                        ))}
-                    </select>
+                {/* Not a question any more.
 
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                        Everyone else sees these times converted to their own zone, so nobody has
-                        to do the arithmetic.
+                    Picking a zone was a required decision on the way to making
+                    a poll, and it is one almost nobody needs: the hours you
+                    type are the hours where you are, and everyone else is shown
+                    the same moments on their own clock. Stating that is more
+                    useful than asking. The picker stays for the case where the
+                    statement is wrong — a device set to the wrong zone, or
+                    arranging something for a city you are not in. */}
+                <div className="rounded-xl border border-border bg-muted/30 p-3.5">
+                    <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                        <Globe className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span>
+                            These hours are{' '}
+                            <span className="font-semibold text-foreground">
+                                {zoneCityName(timezone)} time ({zoneOffsetLabel(timezone)})
+                            </span>
+                            , where you are. Everyone else picks from the same moments on their own
+                            clock, so nobody has to convert anything.
+                            {example && (
+                                <>
+                                    {' '}Your{' '}
+                                    <span className="font-medium text-foreground">
+                                        {example.here}
+                                    </span>{' '}
+                                    is{' '}
+                                    <span className="font-medium text-foreground">
+                                        {example.there}
+                                    </span>{' '}
+                                    for someone in {example.city}.
+                                </>
+                            )}
+                        </span>
                     </p>
-                </Field>
+
+                    {isZonePickerOpen ? (
+                        <div className="mt-3">
+                            <label
+                                htmlFor="timezone"
+                                className="mb-1.5 block text-xs font-medium text-foreground"
+                            >
+                                Write the hours in another zone instead
+                            </label>
+                            <select
+                                id="timezone"
+                                value={timezone}
+                                onChange={(event) => setTimezone(event.target.value)}
+                                className={inputClass}
+                            >
+                                {zones.map((zone) => (
+                                    <option key={zone} value={zone}>
+                                        {zone.replace('_', ' ')}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setZonePickerOpen(true)}
+                            className="mt-2 rounded px-1 py-0.5 text-xs font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                            Not where you are?
+                        </button>
+                    )}
+                </div>
             </Section>
 
             {preview.length > 0 && (

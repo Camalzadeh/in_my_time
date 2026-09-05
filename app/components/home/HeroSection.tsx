@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, Check } from 'lucide-react';
 
 import { UI_PATHS } from '@/lib/routes';
+import MyPollsLink from './MyPollsLink';
 
 // The preview on the right is illustrative, not live data. It mirrors the shape
 // of the real grid so the page is not promising something different from what
@@ -41,6 +42,9 @@ export default function HeroSection() {
                                 Create a poll
                                 <ArrowRight className="h-4 w-4" aria-hidden />
                             </Link>
+
+                            {/* Only rendered for a browser that has polls. */}
+                            <MyPollsLink />
 
                             <a
                                 href="#how-it-works"
