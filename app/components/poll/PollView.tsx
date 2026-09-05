@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import SiteHeader from '@/app/components/SiteHeader';
@@ -8,11 +8,13 @@ import SiteHeader from '@/app/components/SiteHeader';
 import type { PollPageData } from '@/lib/data/server/get-poll-data';
 import { applyPollEvent, type PollEvent } from '@/lib/poll-state';
 import { usePollManager } from '@/lib/hooks/use-poll-manager';
+import { useDisplayTimezone } from '@/lib/hooks/use-display-timezone';
 import useVoterIdentity from '@/lib/hooks/use-voter-identity';
 
 import PollRealtimeBridge, { type RealtimeStatus } from './PollRealtimeBridge';
 import NicknameModal from './NicknameModal';
 import PollHeader from './PollHeader';
+import PollTimezoneBar from './PollTimezoneBar';
 import PollScheduleGrid from './PollScheduleGrid';
 import PollFooter from './PollFooter';
 import PollLeaderboard from './PollLeaderboard';
@@ -32,10 +34,17 @@ export default function PollView({ pollId, data }: Props) {
         data.realtimeEnabled ? 'connecting' : 'offline',
     );
 
-    const { voterId, voterName, isIdentityReady, setVoterName } = useVoterIdentity();
+    const { voterId, voterName, setVoterName } = useVoterIdentity();
 
     const [isNameModalOpen, setNameModalOpen] = useState(false);
     const [isFinalizeOpen, setFinalizeOpen] = useState(false);
+
+    // Set when the name dialog was opened by an attempt to save, so the save
+    // can carry on by itself once the name exists.
+    const saveAfterNaming = useRef(false);
+
+    const pollTimezone = poll.config.timezone;
+    const { timezone, preference, setPreference } = useDisplayTimezone(pollTimezone);
 
     const manager = usePollManager({
         poll,
@@ -43,6 +52,7 @@ export default function PollView({ pollId, data }: Props) {
         voterId,
         voterName,
         isOwner: data.isOwner,
+        displayTimezone: timezone,
     });
 
     const handleEvent = useCallback((event: PollEvent) => {
@@ -50,15 +60,30 @@ export default function PollView({ pollId, data }: Props) {
     }, []);
 
     const isOpen = poll.status === 'open';
-    const needsName = isIdentityReady && voterName === null;
 
-    const save = async () => {
+    const persist = useCallback(async (nameOverride?: string) => {
         try {
-            await manager.saveVote();
+            await manager.saveVote(nameOverride);
             toast.success('Your availability is saved.');
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Could not save your vote.');
         }
+    }, [manager]);
+
+    // Nothing is gated behind the name until this point.
+    //
+    // The dialog used to open the moment the page loaded, before a visitor
+    // could see the poll they had been sent a link to — a form standing between
+    // someone and the thing they came to look at. The name is only needed to
+    // attribute a vote, so it is asked for when a vote is actually saved.
+    const save = () => {
+        if (!voterName) {
+            saveAfterNaming.current = true;
+            setNameModalOpen(true);
+            return;
+        }
+
+        void persist();
     };
 
     const clear = async (targetVoterId: string) => {
@@ -80,6 +105,15 @@ export default function PollView({ pollId, data }: Props) {
         }
     };
 
+    const timezoneBar = (
+        <PollTimezoneBar
+            displayTimezone={timezone}
+            pollTimezone={pollTimezone}
+            preference={preference}
+            onChange={setPreference}
+        />
+    );
+
     return (
         <>
             <SiteHeader />
@@ -93,15 +127,22 @@ export default function PollView({ pollId, data }: Props) {
                 )}
 
                 <NicknameModal
-                    isOpen={isNameModalOpen || (isOpen && needsName)}
+                    isOpen={isNameModalOpen}
                     initialName={voterName}
                     onSave={(name) => {
                         setVoterName(name);
                         setNameModalOpen(false);
+
+                        if (saveAfterNaming.current) {
+                            saveAfterNaming.current = false;
+                            void persist(name);
+                        }
                     }}
-                    onClose={() => setNameModalOpen(false)}
-                    // The name is required to vote, so it cannot be dismissed until set.
-                    dismissible={!needsName}
+                    onClose={() => {
+                        saveAfterNaming.current = false;
+                        setNameModalOpen(false);
+                    }}
+                    dismissible
                 />
 
                 <FinalizePollModal
@@ -124,19 +165,23 @@ export default function PollView({ pollId, data }: Props) {
                         <FinalizedPollView
                             poll={poll}
                             currentVoterId={voterId}
-                            timezone={manager.timezone}
+                            displayTimezone={timezone}
+                            pollTimezone={pollTimezone}
                         />
                     ) : (
                         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
                             <div className="space-y-6 lg:col-span-8">
                                 <PollScheduleGrid
+                                    rows={manager.rows}
                                     days={manager.days}
                                     selection={manager.selection}
                                     maxVoteCount={manager.maxVoteCount}
-                                    disabled={!voterName || manager.isSaving}
-                                    timezone={manager.timezone}
+                                    // Picking is open to anyone; only saving
+                                    // needs a name.
+                                    disabled={manager.isSaving}
                                     onToggle={manager.toggleSlot}
                                     onSetMany={manager.setSlots}
+                                    topBar={timezoneBar}
                                 />
 
                                 <PollFooter
@@ -149,19 +194,21 @@ export default function PollView({ pollId, data }: Props) {
                                     onSave={save}
                                     onDiscard={manager.resetDraft}
                                     onFinalize={() => setFinalizeOpen(true)}
-                                    onEnterName={() => setNameModalOpen(true)}
+                                    onEnterName={save}
                                 />
+                            </div>
 
+                            {/* The leaderboard sits here rather than under the
+                                grid: in the left column it left the right one
+                                empty from halfway down the page. */}
+                            <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-6">
                                 <PollLeaderboard
                                     rankedSlots={manager.rankedSlots}
                                     maxVoteCount={manager.maxVoteCount}
                                 />
-                            </div>
 
-                            <div className="space-y-6 lg:col-span-4 lg:sticky lg:top-6">
                                 <PollSidebarStats
                                     slotDuration={poll.config.slotDuration}
-                                    timezone={manager.timezone}
                                     days={manager.days}
                                 />
 

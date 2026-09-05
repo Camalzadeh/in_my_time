@@ -31,6 +31,12 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: '/polls/create',
                 icons: [{ src: '/icon-192.png', sizes: '192x192' }],
             },
+            {
+                name: 'Your polls',
+                short_name: 'My polls',
+                url: '/home',
+                icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+            },
         ],
     };
 }

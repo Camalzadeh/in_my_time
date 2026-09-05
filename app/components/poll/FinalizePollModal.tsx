@@ -107,7 +107,7 @@ export default function FinalizePollModal({ isOpen, rankedSlots, onClose, onConf
                                                 {slot.label}
                                             </span>
                                             <span className="block text-xs text-muted-foreground">
-                                                {slot.weekday}, {slot.date}
+                                                {slot.weekday}, {slot.dayLabel}
                                             </span>
                                         </span>
                                     </span>

@@ -21,13 +21,13 @@ const features = [
         icon: Clock,
         title: 'Time zones handled',
         description:
-            'A poll carries its own time zone, so "14:00" means the same moment to everyone reading it.',
+            'Everyone reads the grid on their own clock. Pick what suits you; the person who made the poll sees it in theirs.',
     },
 ] as const;
 
 export default function FeaturesSection() {
     return (
-        <section id="features" className="border-t border-border py-20 md:py-28">
+        <section id="features" className="border-t border-border py-14 md:py-20">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-2xl text-center">
                     <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">

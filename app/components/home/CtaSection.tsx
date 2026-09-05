@@ -5,7 +5,7 @@ import { UI_PATHS } from '@/lib/routes';
 
 export default function CtaSection() {
     return (
-        <section className="border-t border-border py-20 md:py-28">
+        <section className="border-t border-border py-14 md:py-20">
             <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance md:text-4xl">
                     Ready to stop asking &ldquo;when are you free?&rdquo;

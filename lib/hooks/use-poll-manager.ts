@@ -3,29 +3,36 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import type { PublicPoll } from '@/lib/data/serialize';
-import { generateSlotsForDate, slotLabel } from '@/lib/time/slots';
+import { buildDisplayGrid, type GridRow } from '@/lib/time/display';
 import { API_ROUTES } from '@/lib/routes';
 
 export interface SlotView {
     iso: string;
-    /** Wall-clock time in the poll's zone, e.g. "14:30". */
+    /** Wall-clock time in the *display* zone, e.g. "14:30". */
     label: string;
     count: number;
     voters: string[];
 }
 
 export interface DayView {
-    /** "YYYY-MM-DD" */
-    date: string;
+    /** "YYYY-MM-DD" in the display zone. */
+    key: string;
     weekday: string;
     dayLabel: string;
-    slots: SlotView[];
+    /** Picks across the whole column. */
+    total: number;
+    /**
+     * One entry per row, in row order. Null where this day has no slot at that
+     * time — which happens whenever the viewer's zone splits the poll's days
+     * differently from the poll's own.
+     */
+    cells: (SlotView | null)[];
 }
 
 export interface RankedSlot {
     iso: string;
     label: string;
-    date: string;
+    dayLabel: string;
     weekday: string;
     count: number;
 }
@@ -36,6 +43,8 @@ interface Args {
     voterId: string;
     voterName: string | null;
     isOwner: boolean;
+    /** The zone the viewer is reading the poll in. */
+    displayTimezone: string;
 }
 
 async function send(url: string, method: 'POST' | 'DELETE', body: unknown) {
@@ -53,11 +62,16 @@ async function send(url: string, method: 'POST' | 'DELETE', body: unknown) {
     return response.json().catch(() => null);
 }
 
-export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Args) {
+export function usePollManager({
+    poll,
+    pollId,
+    voterId,
+    voterName,
+    isOwner,
+    displayTimezone,
+}: Args) {
     const [draft, setDraft] = useState<string[] | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-
-    const timezone = poll.config.timezone;
 
     const myVote = useMemo(
         () => poll.votes.find((vote) => vote.voterId === voterId) ?? null,
@@ -100,47 +114,40 @@ export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Ar
         return index;
     }, [poll.votes]);
 
-    const days: DayView[] = useMemo(() => {
-        const { dailyStartTime, dailyEndTime, slotDuration } = poll.config;
+    // The instants are fixed; which day and which row they land on is a
+    // question about the viewer, so the grid is rebuilt when the zone changes.
+    const grid = useMemo(
+        () => buildDisplayGrid(poll.config, displayTimezone),
+        [poll.config, displayTimezone],
+    );
 
-        return poll.config.targetDates.map((date) => {
-            const slots = generateSlotsForDate(date, {
-                dailyStartTime,
-                dailyEndTime,
-                slotDuration,
-                timezone,
-            });
+    const rows: GridRow[] = grid.rows;
 
-            // Format the day name from the date string itself, pinned to UTC:
-            // "10 September" is the day in the poll's zone, not the viewer's.
-            const noon = new Date(`${date}T12:00:00Z`);
+    const days: DayView[] = useMemo(
+        () =>
+            grid.days.map((day) => {
+                let total = 0;
 
-            return {
-                date,
-                weekday: new Intl.DateTimeFormat('en-US', {
-                    weekday: 'long',
-                    timeZone: 'UTC',
-                }).format(noon),
-                dayLabel: new Intl.DateTimeFormat('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: 'UTC',
-                }).format(noon),
-                slots: slots.map((slot) => {
-                    const iso = slot.toISOString();
+                const cells = grid.rows.map((row) => {
+                    const iso = grid.cells.get(`${day.key}|${row.key}`);
+                    if (!iso) return null;
+
                     const voters = votersBySlot.get(iso) ?? [];
+                    total += voters.length;
 
-                    return { iso, label: slotLabel(slot, timezone), count: voters.length, voters };
-                }),
-            };
-        });
-    }, [poll.config, timezone, votersBySlot]);
+                    return { iso, label: row.label, count: voters.length, voters };
+                });
+
+                return { ...day, total, cells };
+            }),
+        [grid, votersBySlot],
+    );
 
     const maxVoteCount = useMemo(() => {
         let max = 1;
         for (const day of days) {
-            for (const slot of day.slots) {
-                if (slot.count > max) max = slot.count;
+            for (const cell of day.cells) {
+                if (cell && cell.count > max) max = cell.count;
             }
         }
         return max;
@@ -150,14 +157,14 @@ export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Ar
         const ranked: RankedSlot[] = [];
 
         for (const day of days) {
-            for (const slot of day.slots) {
-                if (slot.count > 0) {
+            for (const cell of day.cells) {
+                if (cell && cell.count > 0) {
                     ranked.push({
-                        iso: slot.iso,
-                        label: slot.label,
-                        date: day.dayLabel,
+                        iso: cell.iso,
+                        label: cell.label,
+                        dayLabel: day.dayLabel,
                         weekday: day.weekday,
-                        count: slot.count,
+                        count: cell.count,
                     });
                 }
             }
@@ -165,6 +172,9 @@ export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Ar
 
         return ranked.sort((a, b) => b.count - a.count || a.iso.localeCompare(b.iso));
     }, [days]);
+
+    /** Every slot in the poll, so "select all" and the like have something to work from. */
+    const allSlotIsos = useMemo(() => [...grid.cells.values()], [grid]);
 
     const toggleSlot = useCallback(
         (iso: string) => {
@@ -192,14 +202,20 @@ export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Ar
 
     const resetDraft = useCallback(() => setDraft(null), []);
 
-    const saveVote = useCallback(async () => {
-        if (!voterId || !voterName || poll.status !== 'open') return;
+    /**
+     * `nameOverride` exists for the moment someone types their name in order to
+     * save: the new name is not in props yet, so it is passed straight through
+     * rather than waiting a render for it to arrive.
+     */
+    const saveVote = useCallback(async (nameOverride?: string) => {
+        const name = nameOverride ?? voterName;
+        if (!voterId || !name || poll.status !== 'open') return;
 
         setIsSaving(true);
         try {
             await send(API_ROUTES.VOTE_POLL_API(pollId), 'POST', {
                 voterId,
-                voterName,
+                voterName: name,
                 selectedSlots: selection,
             });
             // The saved state now comes back as the source of truth.
@@ -225,10 +241,11 @@ export function usePollManager({ poll, pollId, voterId, voterName, isOwner }: Ar
     );
 
     return {
+        rows,
         days,
         rankedSlots,
         maxVoteCount,
-        timezone,
+        allSlotIsos,
 
         isOwner,
         hasVoted: myVote !== null,

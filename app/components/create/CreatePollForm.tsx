@@ -171,15 +171,18 @@ export default function CreatePollForm() {
                     </button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                {/* One row each. Sharing a row, the date inputs were squeezed
+                    to about 90px, at which width a browser prints its own
+                    placeholder instead of a readable date. */}
+                <div className="space-y-4">
                     <Field label="Add a day" htmlFor="single-date">
-                        <div className="flex gap-2">
+                        <div className="flex max-w-sm flex-col gap-2 sm:flex-row">
                             <input
                                 id="single-date"
                                 type="date"
                                 value={singleDate}
                                 onChange={(event) => setSingleDate(event.target.value)}
-                                className={`${inputClass} min-w-0 flex-1`}
+                                className={`${inputClass} min-w-[8.5rem] flex-1`}
                             />
                             <button
                                 type="button"
@@ -188,31 +191,33 @@ export default function CreatePollForm() {
                                     addDates([singleDate]);
                                     setSingleDate('');
                                 }}
-                                className={iconButtonClass}
+                                className={addButtonClass}
                             >
                                 <Plus className="h-4 w-4" aria-hidden />
-                                <span className="sr-only">Add this day</span>
+                                <span className="sm:sr-only">Add day</span>
                             </button>
                         </div>
                     </Field>
 
                     <Field label="Add a range" htmlFor="range-start">
-                        <div className="flex flex-wrap gap-2">
-                            <input
-                                id="range-start"
-                                type="date"
-                                value={rangeStart}
-                                onChange={(event) => setRangeStart(event.target.value)}
-                                className={`${inputClass} min-w-0 flex-1`}
-                                aria-label="Range start"
-                            />
-                            <input
-                                type="date"
-                                value={rangeEnd}
-                                onChange={(event) => setRangeEnd(event.target.value)}
-                                className={`${inputClass} min-w-0 flex-1`}
-                                aria-label="Range end"
-                            />
+                        <div className="flex max-w-lg flex-col gap-2 sm:flex-row">
+                            <div className="flex min-w-0 flex-1 gap-2">
+                                <input
+                                    id="range-start"
+                                    type="date"
+                                    value={rangeStart}
+                                    onChange={(event) => setRangeStart(event.target.value)}
+                                    className={`${inputClass} min-w-[8.5rem] flex-1`}
+                                    aria-label="Range start"
+                                />
+                                <input
+                                    type="date"
+                                    value={rangeEnd}
+                                    onChange={(event) => setRangeEnd(event.target.value)}
+                                    className={`${inputClass} min-w-[8.5rem] flex-1`}
+                                    aria-label="Range end"
+                                />
+                            </div>
                             <button
                                 type="button"
                                 disabled={!rangeStart || !rangeEnd}
@@ -226,10 +231,10 @@ export default function CreatePollForm() {
                                     setRangeStart('');
                                     setRangeEnd('');
                                 }}
-                                className={iconButtonClass}
+                                className={addButtonClass}
                             >
                                 <Plus className="h-4 w-4" aria-hidden />
-                                <span className="sr-only">Add this range</span>
+                                <span className="sm:sr-only">Add range</span>
                             </button>
                         </div>
                     </Field>
@@ -294,24 +299,32 @@ export default function CreatePollForm() {
                             </button>
                         ))}
 
-                        <input
-                            id="duration"
-                            type="number"
-                            min={LIMITS.SLOT_DURATION_MIN}
-                            max={LIMITS.SLOT_DURATION_MAX}
-                            step={5}
-                            value={duration}
-                            onChange={(event) => setDuration(Number(event.target.value) || 0)}
-                            className="h-9 w-20 rounded-lg border border-border bg-background px-2 text-center text-base font-semibold tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
-                            aria-label="Custom slot length in minutes"
-                        />
+                        <span className="px-1 text-xs text-muted-foreground">or</span>
+
+                        {/* Unlabelled, this was a bare box reading "60" beside
+                            the "60 min" preset — it looked like a fourth preset
+                            that had lost its text. */}
+                        <span className="inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-background pl-2 pr-2.5">
+                            <input
+                                id="duration"
+                                type="number"
+                                min={LIMITS.SLOT_DURATION_MIN}
+                                max={LIMITS.SLOT_DURATION_MAX}
+                                step={5}
+                                value={duration}
+                                onChange={(event) => setDuration(Number(event.target.value) || 0)}
+                                className="w-11 bg-transparent text-center text-base font-semibold tabular-nums text-foreground focus-visible:outline-none sm:text-sm"
+                                aria-label="Custom slot length in minutes"
+                            />
+                            <span className="text-xs text-muted-foreground">min</span>
+                        </span>
                     </div>
                 </Field>
 
                 <Field
                     label="Time zone"
                     htmlFor="timezone"
-                    hint="Everyone sees these times in this zone"
+                    hint="Times you pick are written in this zone"
                 >
                     <select
                         id="timezone"
@@ -325,6 +338,11 @@ export default function CreatePollForm() {
                             </option>
                         ))}
                     </select>
+
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        Everyone else sees these times converted to their own zone, so nobody has
+                        to do the arithmetic.
+                    </p>
                 </Field>
             </Section>
 
@@ -429,8 +447,10 @@ const inputClass =
 const chipClass =
     'inline-flex min-h-9 items-center rounded-lg border border-border bg-background px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-const iconButtonClass =
-    'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+// Full width with a label on a phone, a square icon once there is room for one
+// on the same line as the inputs.
+const addButtonClass =
+    'inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-background text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:w-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 function Section({
     title,

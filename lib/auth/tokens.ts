@@ -7,6 +7,12 @@ import 'server-only';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import type { NextResponse } from 'next/server';
 
+import {
+    HAS_POLLS_COOKIE,
+    OWNER_COOKIE_PREFIX,
+    VOTER_COOKIE_PREFIX,
+} from '@/lib/cookie-names';
+
 // Ownership without accounts.
 //
 // The old setup identified the owner by `ownerId` — a UUID the browser kept in
@@ -44,8 +50,8 @@ export function tokenMatchesHash(token: string | undefined, expectedHash: string
     return timingSafeEqual(actual, expected);
 }
 
-export const ownerCookieName = (pollId: string) => `imt_o_${pollId}`;
-export const voterCookieName = (pollId: string) => `imt_v_${pollId}`;
+export const ownerCookieName = (pollId: string) => `${OWNER_COOKIE_PREFIX}${pollId}`;
+export const voterCookieName = (pollId: string) => `${VOTER_COOKIE_PREFIX}${pollId}`;
 
 /**
  * Sets the cookie on the response.
@@ -61,4 +67,45 @@ export function attachToken(response: NextResponse, name: string, token: string)
         path: '/',
         maxAge: MAX_AGE_SECONDS,
     });
+}
+
+/**
+ * A deliberately non-secret, JS-readable marker meaning "this browser has taken
+ * part in something".
+ *
+ * The tokens above are httpOnly, so the page itself cannot tell whether the
+ * visitor has any polls — and the landing page needs to know that to decide
+ * whether to offer a link to their own. Reading it grants nothing: every list
+ * behind it is still assembled from the httpOnly tokens on the server.
+ */
+export function markHasPolls(response: NextResponse): void {
+    response.cookies.set(HAS_POLLS_COOKIE, '1', {
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: MAX_AGE_SECONDS,
+    });
+}
+
+/**
+ * The poll ids this browser holds a token for, split by what the token claims.
+ *
+ * Note what is *not* here: any lookup by the voter id the browser keeps in
+ * localStorage. That id is published in every poll's JSON, so anyone holding
+ * one shared link could read a participant's id and ask the server for every
+ * other poll that person had voted in. Cookies are the same "this browser"
+ * scope without that hole.
+ */
+export function pollIdsFromCookieNames(names: string[]): { owned: string[]; voted: string[] } {
+    const owned: string[] = [];
+    const voted: string[] = [];
+
+    for (const name of names) {
+        if (name.startsWith(OWNER_COOKIE_PREFIX)) owned.push(name.slice(OWNER_COOKIE_PREFIX.length));
+        else if (name.startsWith(VOTER_COOKIE_PREFIX))
+            voted.push(name.slice(VOTER_COOKIE_PREFIX.length));
+    }
+
+    return { owned, voted };
 }
