@@ -86,6 +86,21 @@ Cookie: imt_o_{{pollId}}={{ownerToken}}
   "finalSlot": "2027-03-10T05:00:00.000Z"
 }
 
+### Delete the poll
+# Owner only, and gone for everyone. A voter token for the same poll is
+# refused: taking part is not permission to destroy.
+
+DELETE {{baseUrl}}/polls/{{pollId}}
+Cookie: imt_o_{{pollId}}={{ownerToken}}
+
+### Forget the poll on this device
+# Drops this browser's cookies and leaves the poll alone, which is how one you
+# only voted in comes off /home. Needs no cookie to be valid — discarding your
+# own never did.
+
+POST {{baseUrl}}/polls/{{pollId}}/forget
+Cookie: imt_v_{{pollId}}={{voterToken}}
+
 ### Ably token for the browser
 # 503 when ABLY_API_KEY is unset, which the client treats as "no realtime"
 # rather than an error.

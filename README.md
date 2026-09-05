@@ -363,6 +363,8 @@ docker run -p 3000:3000 \
 | `POST /api/polls/:id/vote` | Cast or change a vote | Sets `imt_v_<pollId>` on the first one |
 | `DELETE /api/polls/:id/vote` | Clear a vote | Own vote, or any as the owner |
 | `POST /api/polls/:id/finalize` | Close the poll | Owner cookie required |
+| `DELETE /api/polls/:id` | Delete the poll | Owner cookie required; a voter token is not accepted |
+| `POST /api/polls/:id/forget` | Drop this browser's tokens | The poll is untouched; only your own cookies go |
 | `GET /api/ably` | Short-lived Ably token | 503 when realtime is not configured |
 
 Bad input is a 400 naming the field, never a 500. Slots that do not belong to the poll are
