@@ -121,7 +121,8 @@ container, so a stray Atlas string in `.env.local` cannot send development write
 - Anonymous voting — no accounts anywhere
 - A week-at-a-glance grid: one column per day, one row per slot
 - Drag to select a range with a mouse; tap cells or whole rows and columns on touch
-- Time zones handled explicitly, so a slot means the same moment to every participant
+- Every participant reads the grid on their own clock, whichever zone the poll was written in
+- A list of your own polls at `/home`, built from the tokens the browser already holds
 - Live updates through Ably, and a working site when Ably is not configured
 - Ownership proved by an httpOnly token, not by anything the browser claims
 - Light and dark themes, following the system by default
@@ -156,8 +157,12 @@ the React 19 peer conflict that forced `--legacy-peer-deps` on every install.
 
 1. Create a poll: pick the days, the daily window, the slot length and the time zone
 2. Share the link — the creator's browser keeps the ownership cookie
-3. Everyone marks the slots they could make
+3. Everyone marks the slots they could make, each seeing the grid in their own zone
 4. Close the poll on the winning time
+
+`/home` lists the polls this browser has created or voted in. It needs no account: the per-poll
+tokens below are what identify the browser, so the list is only ever as good as the cookies —
+clearing browser data clears it.
 
 ---
 
@@ -165,17 +170,33 @@ the React 19 peer conflict that forced `--legacy-peer-deps` on every install.
 
 A poll stores its own zone in `config.timezone` (an IANA name such as `Asia/Baku`), and that is
 what its daily start and end times refer to. Slots are computed from wall-clock time in that zone
-and stored as UTC instants; the page renders them back in the poll's zone and says so when the
-viewer is somewhere else.
+and stored as UTC instants.
+
+**Reading is separate from writing.** The grid is rebuilt for whoever is looking at it, in their
+own zone by default. A bar above it names the zone in use and switches to the poll's own, or any
+other, in one step; the choice is remembered per device as "automatic" rather than as a fixed
+zone, so it still follows someone who travels.
+
+Two things follow from this, and both are correct:
+
+- **Days shift.** A slot at 23:00 in Baku belongs to the previous day in London, so the first or
+  last column can be partial.
+- **Rows can multiply.** If a poll crosses a daylight-saving change in the viewer's zone, one
+  instant lands at 13:00 and the next week's at 12:00. Both rows appear, and cells that do not
+  exist stay empty rather than being invented to square the grid off.
 
 This matters more than it sounds. Slots used to be built with `date.setHours()`, which means
 *the browser's* zone — so a participant in Baku and one in Berlin could both click "14:00", store
-two different instants, and never see each other's votes.
+two different instants, and never see each other's votes. Fixing the storage was only half of it:
+until the grid was drawn per viewer, everyone still read the poll on its author's clock and did
+the conversion in their head.
 
 All of the arithmetic lives in [lib/time/](lib/time/) with no date library behind it: `Intl`
 already knows the tz database. [lib/time/zone.ts](lib/time/zone.ts) converts between wall-clock
 time and instants, correcting across daylight-saving transitions;
-[lib/time/slots.ts](lib/time/slots.ts) generates and labels slots.
+[lib/time/slots.ts](lib/time/slots.ts) generates slots; and
+[lib/time/display.ts](lib/time/display.ts) arranges them into the columns and rows one particular
+viewer sees.
 
 ---
 
@@ -193,9 +214,18 @@ No response contains either hash — [lib/data/serialize.ts](lib/data/serialize.
 boundary that decides what leaves the server. There is no signing key to configure, because the
 stored hash is the source of truth.
 
+These same tokens are what `/home` is built from — see
+[lib/data/server/get-my-polls.ts](lib/data/server/get-my-polls.ts). A third cookie, `imt_seen`, is
+readable by page script and exists only so the header knows whether to offer that link; it grants
+nothing, and forging it leads to a page that lists nothing.
+
 > Previously the owner was identified by `ownerId`, a UUID from the browser's localStorage that
 > was also returned in the poll's public JSON. Anyone holding a poll link could read it and close
 > someone else's poll.
+>
+> The voter id is still public, which is why `/home` does **not** look polls up by it: anyone
+> holding one shared link could read a participant's id and ask for every other poll that person
+> had voted in.
 
 ---
 
