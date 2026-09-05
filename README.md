@@ -123,6 +123,7 @@ container, so a stray Atlas string in `.env.local` cannot send development write
 - Drag to select a range with a mouse; tap cells or whole rows and columns on touch
 - Every participant reads the grid on their own clock, whichever zone the poll was written in
 - A list of your own polls at `/home`, built from the tokens the browser already holds
+- Delete a poll you made, or drop someone else's off your list
 - Live updates through Ably, and a working site when Ably is not configured
 - Ownership proved by an httpOnly token, not by anything the browser claims
 - Light and dark themes, following the system by default
@@ -219,6 +220,12 @@ poll requires that cookie. The first vote from a browser works the same way, wit
 No response contains either hash — [lib/data/serialize.ts](lib/data/serialize.ts) is the single
 boundary that decides what leaves the server. There is no signing key to configure, because the
 stored hash is the source of truth.
+
+Deleting a poll needs the owner token too, and a voter token for the same poll is not accepted
+in its place — both cases are tested. `POST /api/polls/:id/forget` is the other half: it throws
+away this browser's own cookies for a poll without touching the poll, which is how something you
+merely voted in leaves your list. It needs no permission, because discarding your own cookie
+never did.
 
 These same tokens are what `/home` is built from — see
 [lib/data/server/get-my-polls.ts](lib/data/server/get-my-polls.ts). A third cookie, `imt_seen`, is
