@@ -17,7 +17,7 @@ const MAX_PREVIEW_VOTES = 5;
 
 export default function HeroSection() {
     return (
-        <section className="py-16 md:py-24">
+        <section className="py-14 md:py-20">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid items-center gap-12 md:grid-cols-2">
                     <div>

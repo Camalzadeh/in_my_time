@@ -27,14 +27,26 @@ export default function PollFooter({
     onFinalize,
     onEnterName,
 }: Props) {
-    // Sticky on small screens: with a tall grid the save button would otherwise
-    // sit far below the slots the user just picked.
+    // The bar only floats when it has something to ask for.
+    //
+    // It used to be sticky at all times, which on a phone meant a card parked
+    // over the middle of the grid covering three or four rows — including, on
+    // the poll I tested, the most-picked time in it. Nothing could be done
+    // about that except scroll the page and hope. Now it lifts off the page
+    // while there are unsaved picks or no name yet, and sits quietly at the
+    // bottom of the column the rest of the time.
+    const isPinned = hasUnsavedChanges || !hasName;
+
     return (
         <div
-            className="sticky bottom-3 z-30 rounded-2xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:bottom-4 sm:p-5"
-            style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+            className={`rounded-2xl border bg-card p-4 sm:p-5 ${
+                isPinned
+                    ? 'sticky bottom-3 z-30 border-ring/40 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/90 sm:bottom-4'
+                    : 'border-border'
+            }`}
+            style={isPinned ? { marginBottom: 'env(safe-area-inset-bottom)' } : undefined}
         >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div className="flex items-center gap-5 text-sm">
                     <div>
                         <div className="text-xl font-bold leading-none text-foreground">
@@ -55,6 +67,12 @@ export default function PollFooter({
                             {selectedCount === 1 ? 'slot picked' : 'slots picked'}
                         </div>
                     </div>
+
+                    {hasUnsavedChanges && (
+                        <span className="rounded-full bg-accent/15 px-2.5 py-1 text-[11px] font-semibold text-accent">
+                            Unsaved
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
@@ -87,7 +105,7 @@ export default function PollFooter({
                             onClick={onEnterName}
                             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 sm:h-11 sm:min-w-[11rem] sm:flex-none text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         >
-                            Add your name
+                            Add your name to vote
                         </button>
                     ) : (
                         <button
@@ -116,7 +134,7 @@ export default function PollFooter({
 
             {/* Announced to screen readers when it appears, so the unsaved state is not visual only. */}
             {hasUnsavedChanges && (
-                <p role="status" className="mt-3 text-xs text-muted-foreground">
+                <p role="status" className="sr-only">
                     You have unsaved changes.
                 </p>
             )}

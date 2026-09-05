@@ -78,5 +78,11 @@ jobs:
           google-chrome --headless=new --remote-debugging-port=9222 --no-sandbox --disable-gpu --user-data-dir=/tmp/cdp about:blank &
           until curl -sf http://127.0.0.1:9222/json/version >/dev/null; do sleep 1; done
 
-          node scripts/browser-check.mjs http://127.0.0.1:3000/ http://127.0.0.1:3000/polls/create
-          node scripts/browser-check.mjs --mobile http://127.0.0.1:3000/ http://127.0.0.1:3000/polls/create
+          # The poll page is the most involved one in the project and was not
+          # covered at all, because checking it needs a poll to exist.
+          POLL_ID=$(curl -sf -X POST http://127.0.0.1:3000/api/polls             -H 'Content-Type: application/json'             -d '{"title":"CI smoke poll","config":{"targetDates":["2027-03-10","2027-03-11"],"dailyStartTime":"09:00","dailyEndTime":"12:00","slotDuration":60,"timezone":"Europe/Berlin"}}'             | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).pollId))')
+
+          PAGES="http://127.0.0.1:3000/ http://127.0.0.1:3000/polls/create http://127.0.0.1:3000/home http://127.0.0.1:3000/polls/$POLL_ID"
+
+          node scripts/browser-check.mjs $PAGES
+          node scripts/browser-check.mjs --mobile $PAGES
