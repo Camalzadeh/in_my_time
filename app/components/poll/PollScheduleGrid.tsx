@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Check, Users } from 'lucide-react';
 
 import type { DayView } from '@/lib/hooks/use-poll-manager';
+import type { GridRow } from '@/lib/time/display';
 
 // The availability grid: one column per day, one row per time slot.
 //
@@ -12,6 +13,10 @@ import type { DayView } from '@/lib/hooks/use-poll-manager';
 // job this tool exists to do. Every day is on screen at once now, and the grid
 // scrolls sideways when there are more days than fit.
 //
+// Rows come from the viewer's own zone rather than the poll's, so a day may be
+// missing a slot another day has — a cell is null wherever that happens, and it
+// is drawn as an inert gap rather than something clickable.
+//
 // Selecting:
 //   - mouse or pen: click a cell, or press and drag across several
 //   - touch: tap cells; drag is deliberately not bound, because it would fight
@@ -19,13 +24,15 @@ import type { DayView } from '@/lib/hooks/use-poll-manager';
 //     or a whole day instead, which is faster than dragging anyway.
 
 interface Props {
+    rows: GridRow[];
     days: DayView[];
     selection: string[];
     maxVoteCount: number;
     disabled: boolean;
-    timezone: string;
     onToggle: (iso: string) => void;
     onSetMany: (isos: string[], selected: boolean) => void;
+    /** The time-zone bar, rendered inside the card so it reads as part of the grid. */
+    topBar?: ReactNode;
 }
 
 /** Background for a slot, by how many people picked it. */
@@ -33,10 +40,10 @@ function densityClass(count: number, max: number): string {
     if (count === 0) return 'bg-card';
 
     const ratio = count / max;
-    if (ratio <= 0.25) return 'bg-primary/15';
-    if (ratio <= 0.5) return 'bg-primary/35';
-    if (ratio <= 0.75) return 'bg-primary/55';
-    return 'bg-primary/80';
+    if (ratio <= 0.25) return 'bg-primary/20';
+    if (ratio <= 0.5) return 'bg-primary/40';
+    if (ratio <= 0.75) return 'bg-primary/60';
+    return 'bg-primary/85';
 }
 
 /** Text colour that stays readable as the background fills in. */
@@ -46,13 +53,14 @@ function densityText(count: number, max: number): string {
 }
 
 export default function PollScheduleGrid({
+    rows,
     days,
     selection,
     maxVoteCount,
     disabled,
-    timezone,
     onToggle,
     onSetMany,
+    topBar,
 }: Props) {
     const selected = useMemo(() => new Set(selection), [selection]);
 
@@ -66,6 +74,12 @@ export default function PollScheduleGrid({
     // follows must not toggle the cell straight back. Touch and keyboard never
     // set this, so their clicks fall through and do the toggling.
     const pointerHandled = useRef(false);
+
+    // A grid wider than its container gives no sign that it scrolls, and on a
+    // phone the last days are simply invisible. This tracks whether there is
+    // anything left to the right so a fade and a hint can say so.
+    const scrollerRef = useRef<HTMLDivElement>(null);
+    const [hasMoreRight, setHasMoreRight] = useState(false);
 
     const endDrag = useCallback(() => {
         setPaintMode(null);
@@ -84,6 +98,27 @@ export default function PollScheduleGrid({
         };
     }, [paintMode, endDrag]);
 
+    useEffect(() => {
+        const scroller = scrollerRef.current;
+        if (!scroller) return;
+
+        const measure = () => {
+            const remaining = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft;
+            setHasMoreRight(remaining > 4);
+        };
+
+        measure();
+        scroller.addEventListener('scroll', measure, { passive: true });
+
+        const observer = new ResizeObserver(measure);
+        observer.observe(scroller);
+
+        return () => {
+            scroller.removeEventListener('scroll', measure);
+            observer.disconnect();
+        };
+    }, [days.length, rows.length]);
+
     const paint = useCallback(
         (iso: string, mode: boolean) => {
             if (painted.current.has(iso)) return;
@@ -93,7 +128,7 @@ export default function PollScheduleGrid({
         [onSetMany],
     );
 
-    if (days.length === 0 || days[0].slots.length === 0) {
+    if (days.length === 0 || rows.length === 0) {
         return (
             <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
                 <p className="font-medium text-foreground">No time slots</p>
@@ -104,46 +139,52 @@ export default function PollScheduleGrid({
         );
     }
 
-    // Every day runs the same start-to-end range, so the first day's labels
-    // describe every row.
-    const rowLabels = days[0].slots.map((slot) => slot.label);
-
     const toggleColumn = (day: DayView) => {
-        const isos = day.slots.map((s) => s.iso);
+        const isos = day.cells.filter(Boolean).map((cell) => cell!.iso);
+        if (isos.length === 0) return;
+
         const allOn = isos.every((iso) => selected.has(iso));
         onSetMany(isos, !allOn);
     };
 
     const toggleRow = (rowIndex: number) => {
-        const isos = days.map((day) => day.slots[rowIndex]?.iso).filter(Boolean) as string[];
+        const isos = days
+            .map((day) => day.cells[rowIndex])
+            .filter(Boolean)
+            .map((cell) => cell!.iso);
+        if (isos.length === 0) return;
+
         const allOn = isos.every((iso) => selected.has(iso));
         onSetMany(isos, !allOn);
     };
 
     return (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+            {topBar}
+
+            <div className="relative">
                 <div
-                    className="min-w-max select-none"
-                    // Columns: a fixed gutter for the time labels, then one per day.
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(4.25rem, 1fr))`,
-                    }}
+                    ref={scrollerRef}
+                    className="overflow-x-auto [-webkit-overflow-scrolling:touch]"
                 >
-                    {/* Header row */}
-                    <div className="sticky left-0 z-20 border-b border-r border-border bg-card px-2 py-3">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                            {timezone.split('/').pop()?.replace('_', ' ')}
-                        </span>
-                    </div>
+                    <div
+                        className="min-w-max select-none"
+                        // Columns: a fixed gutter for the time labels, then one per day.
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: `3.75rem repeat(${days.length}, minmax(4.25rem, 1fr))`,
+                        }}
+                    >
+                        {/* Header row */}
+                        <div className="sticky left-0 z-20 border-b border-r border-border bg-card px-2 py-3">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                                Time
+                            </span>
+                        </div>
 
-                    {days.map((day) => {
-                        const dayTotal = day.slots.reduce((sum, s) => sum + s.count, 0);
-
-                        return (
+                        {days.map((day) => (
                             <button
-                                key={day.date}
+                                key={day.key}
                                 type="button"
                                 disabled={disabled}
                                 onClick={() => toggleColumn(day)}
@@ -153,38 +194,48 @@ export default function PollScheduleGrid({
                                 <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                                     {day.weekday.slice(0, 3)}
                                 </div>
-                                <div className="text-sm font-semibold text-foreground">{day.dayLabel}</div>
-                                {dayTotal > 0 && (
+                                <div className="text-sm font-semibold text-foreground">
+                                    {day.dayLabel}
+                                </div>
+                                {day.total > 0 && (
                                     <div className="mt-0.5 text-[10px] font-medium text-muted-foreground">
-                                        {dayTotal}
+                                        {day.total}
                                     </div>
                                 )}
                             </button>
-                        );
-                    })}
+                        ))}
 
-                    {/* One row per slot */}
-                    {rowLabels.map((label, rowIndex) => (
-                        <Row
-                            key={label}
-                            label={label}
-                            rowIndex={rowIndex}
-                            days={days}
-                            selected={selected}
-                            maxVoteCount={maxVoteCount}
-                            disabled={disabled}
-                            paintMode={paintMode}
-                            pointerHandled={pointerHandled}
-                            onStartDrag={setPaintMode}
-                            onPaint={paint}
-                            onToggle={onToggle}
-                            onToggleRow={toggleRow}
-                        />
-                    ))}
+                        {/* One row per slot time */}
+                        {rows.map((row, rowIndex) => (
+                            <Row
+                                key={row.key}
+                                label={row.label}
+                                rowIndex={rowIndex}
+                                days={days}
+                                selected={selected}
+                                maxVoteCount={maxVoteCount}
+                                disabled={disabled}
+                                paintMode={paintMode}
+                                pointerHandled={pointerHandled}
+                                onStartDrag={setPaintMode}
+                                onPaint={paint}
+                                onToggle={onToggle}
+                                onToggleRow={toggleRow}
+                            />
+                        ))}
+                    </div>
                 </div>
+
+                {/* Purely decorative: the hint below is what screen readers get. */}
+                {hasMoreRight && (
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-card to-transparent"
+                    />
+                )}
             </div>
 
-            <Legend />
+            <Legend hasMoreRight={hasMoreRight} dayCount={days.length} />
         </div>
     );
 }
@@ -231,9 +282,17 @@ function Row({
             </button>
 
             {days.map((day) => {
-                const slot = day.slots[rowIndex];
+                const slot = day.cells[rowIndex];
+
                 if (!slot) {
-                    return <div key={day.date} className="border-t border-border bg-muted/30" />;
+                    // No slot here: this day starts or ends elsewhere once the
+                    // viewer's zone is applied.
+                    return (
+                        <div
+                            key={`${day.key}-${label}`}
+                            className="border-l border-t border-border bg-muted/30"
+                        />
+                    );
                 }
 
                 const isSelected = selected.has(slot.iso);
@@ -285,7 +344,10 @@ function Row({
                         {slot.count > 0 && <span>{slot.count}</span>}
 
                         {isSelected && (
-                            <Check className="absolute right-1 top-1 h-3 w-3 stroke-[3] text-ring" aria-hidden />
+                            <Check
+                                className="absolute right-1 top-1 h-3 w-3 stroke-[3] text-ring"
+                                aria-hidden
+                            />
                         )}
                     </button>
                 );
@@ -294,22 +356,24 @@ function Row({
     );
 }
 
-function Legend() {
+function Legend({ hasMoreRight, dayCount }: { hasMoreRight: boolean; dayCount: number }) {
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" aria-hidden />
-                Numbers show how many people picked that time
+                {hasMoreRight
+                    ? `Scroll sideways for the rest of the ${dayCount} days`
+                    : 'Numbers show how many people picked that time'}
             </span>
 
             <span className="inline-flex items-center gap-2">
                 <span>Fewer</span>
                 <span className="flex overflow-hidden rounded border border-border">
                     <span className="h-3 w-5 bg-card" />
-                    <span className="h-3 w-5 bg-primary/15" />
-                    <span className="h-3 w-5 bg-primary/35" />
-                    <span className="h-3 w-5 bg-primary/55" />
-                    <span className="h-3 w-5 bg-primary/80" />
+                    <span className="h-3 w-5 bg-primary/20" />
+                    <span className="h-3 w-5 bg-primary/40" />
+                    <span className="h-3 w-5 bg-primary/60" />
+                    <span className="h-3 w-5 bg-primary/85" />
                 </span>
                 <span>More</span>
             </span>

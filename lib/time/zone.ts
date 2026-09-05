@@ -100,3 +100,26 @@ export function guessTimeZone(): string {
         return 'UTC';
     }
 }
+
+/**
+ * The zone's offset written the way people read it: "UTC+4", "UTC-3:30".
+ *
+ * Needs an instant because daylight saving moves the offset, so a poll in
+ * October and the same poll in July can print different labels.
+ */
+export function zoneOffsetLabel(timeZone: string, at: Date = new Date()): string {
+    const minutes = Math.round(offsetMsAt(at, timeZone) / 60_000);
+    if (minutes === 0) return 'UTC';
+
+    const sign = minutes < 0 ? '-' : '+';
+    const abs = Math.abs(minutes);
+    const hours = Math.floor(abs / 60);
+    const rest = abs % 60;
+
+    return `UTC${sign}${hours}${rest ? `:${String(rest).padStart(2, '0')}` : ''}`;
+}
+
+/** "Asia/Baku" → "Baku". The city is what people recognise. */
+export function zoneCityName(timeZone: string): string {
+    return (timeZone.split('/').pop() ?? timeZone).replace(/_/g, ' ');
+}

@@ -49,7 +49,7 @@ export default function PollLeaderboard({ rankedSlots, maxVoteCount }: Props) {
                                             {slot.label}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            {slot.weekday}, {slot.date}
+                                            {slot.weekday}, {slot.dayLabel}
                                         </div>
                                     </div>
                                 </div>

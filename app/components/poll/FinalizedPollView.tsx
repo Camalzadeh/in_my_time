@@ -3,15 +3,23 @@
 import { CalendarCheck, Users } from 'lucide-react';
 
 import type { PublicPoll } from '@/lib/data/serialize';
-import { formatInZone } from '@/lib/time/zone';
+import { formatInZone, zoneCityName, zoneOffsetLabel } from '@/lib/time/zone';
 
 interface Props {
     poll: PublicPoll;
     currentVoterId: string;
-    timezone: string;
+    /** The zone the viewer is reading in. */
+    displayTimezone: string;
+    /** The zone the poll was written in. */
+    pollTimezone: string;
 }
 
-export default function FinalizedPollView({ poll, currentVoterId, timezone }: Props) {
+export default function FinalizedPollView({
+    poll,
+    currentVoterId,
+    displayTimezone,
+    pollTimezone,
+}: Props) {
     const final = poll.finalTime ? new Date(poll.finalTime) : null;
 
     // Who said yes to the time that was actually chosen.
@@ -31,18 +39,27 @@ export default function FinalizedPollView({ poll, currentVoterId, timezone }: Pr
                 {final ? (
                     <>
                         <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">
-                            {formatInZone(final, timezone)}
+                            {formatInZone(final, displayTimezone)}
                         </p>
                         <p className="mt-1 text-muted-foreground">
                             {new Intl.DateTimeFormat('en-US', {
                                 weekday: 'long',
                                 month: 'long',
                                 day: 'numeric',
-                                timeZone: timezone,
+                                timeZone: displayTimezone,
                             }).format(final)}
                         </p>
+
+                        {/* The instant is the same everywhere; only the clock differs. */}
                         <p className="mt-3 text-xs text-muted-foreground">
-                            Times shown in {timezone.replace('_', ' ')}
+                            {zoneCityName(displayTimezone)} time ({zoneOffsetLabel(displayTimezone)})
+                            {displayTimezone !== pollTimezone && (
+                                <>
+                                    {' · '}
+                                    {formatInZone(final, pollTimezone)} in{' '}
+                                    {zoneCityName(pollTimezone)}
+                                </>
+                            )}
                         </p>
                     </>
                 ) : (
